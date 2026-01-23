@@ -1,9 +1,9 @@
 from utils import *
-from model.F2ARec import F2ARec
+from model.FAFIRec import FAFIRec
 
 
 # Model note information, used to identify current experiment
-model_note = 'F2ARec'
+model_note = 'FAFIRec'
 # Set random seed to ensure reproducible experiments
 setup_seed(2025)
 # Parse command line arguments
@@ -115,7 +115,7 @@ train_dataset = BuildTrainDataset(u2seq=users_train, item_content=item_word_embs
 train_dl = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
 model_name = model_note
-model = F2ARec(args, item_num, is_use_modal, item_word_embs).to(local_rank)
+model = FAFIRec(args, item_num, is_use_modal, item_word_embs).to(local_rank)
 
 optimizer = optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.l2_weight)
 scaler = torch.amp.GradScaler('cuda')
