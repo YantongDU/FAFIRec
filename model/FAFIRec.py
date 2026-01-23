@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.rnn import pad_sequence
 
-class F2ARec(nn.Module):
+class FAFIRec(nn.Module):
     """
     Weighted-MMD alignment + Gated fusion + SASRec-style user encoder.
     Required interfaces:
