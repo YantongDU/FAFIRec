@@ -20,9 +20,11 @@ checks, not evidence of improved recommendation accuracy.
   changed raw item mappings and changed source are rejected.
 - Complete paired experiment grids, artifact integrity and seed-level inference.
 
-Local compatibility environment: Windows, Python3.12.14, preinstalled
-PyTorch2.5.1+cpu and NumPy2.3.5. The distributed requirements use PyTorch>=2.6;
-the repository's CPU CI installs the declared dependency range on Python3.11.
+Local release environment: Windows, Python3.12.14, PyTorch2.6.0+cpu and
+NumPy2.3.5. The official CPU wheel was verified against its published SHA-256.
+Earlier compatibility checks also passed on preinstalled PyTorch2.5.1+cpu.
+The repository's CPU CI is configured to install the declared dependency range
+on Python3.11; remote CI was not run in this session.
 CUDA execution and LLM2Vec model generation were not exercised locally.
 
 ## Real-data pipeline check
@@ -32,7 +34,7 @@ The prepared source catalog and all events are audited; the smoke run selects
 the first128 users explicitly and keeps the full8,347-item candidate catalog.
 
 Executed configuration: `configs/pantry_lexical_smoke.json`, output override
-`runs/pantry_method_aligned_v4`.
+`runs/pantry_method_aligned_v5`.
 
 - Seeds2025 and2026.
 - Two selected teacher runs and18 selected student runs across all nine controls.

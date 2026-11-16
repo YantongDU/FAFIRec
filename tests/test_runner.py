@@ -96,6 +96,12 @@ class RunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "seed, control"):
             load_selected(self.root / "run", 17, "diagnostic", "cpu")
         checkpoint.write_bytes(original)
+        changed = torch.load(checkpoint, weights_only=True)
+        changed["model"]["control_bias"] += .1
+        torch.save(changed, checkpoint)
+        with self.assertRaisesRegex(ValueError, "Checkpoint file differs"):
+            load_selected(self.root / "run", 17, "diagnostic", "cpu")
+        checkpoint.write_bytes(original)
         cache_path = self.root / "run/seed_17/diagnostics.pt"
         cache_original = cache_path.read_bytes()
         corrupted = torch.load(cache_path, weights_only=True)

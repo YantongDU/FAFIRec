@@ -30,15 +30,23 @@ def load_selected(run_dir, seed, control, device=None):
     records, features, _, identity = load_inputs(cfg)
     if identity != manifest["identity"]:
         raise ValueError("Evaluation inputs differ from the recorded item features or user split")
-    checkpoint = torch.load(run_dir / f"seed_{seed}" / control / "best.pt", map_location="cpu", weights_only=True)
+    checkpoint_path = run_dir / f"seed_{seed}" / control / "best.pt"
+    checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     if checkpoint["identity"] != identity or checkpoint["fingerprint"] != manifest["fingerprint"]:
         raise ValueError("Selected checkpoint does not match this experiment")
     artifact = checkpoint.get("artifact", {})
     if (artifact.get("seed") != seed or artifact.get("control") != control or artifact.get("stage") != "student"
             or checkpoint["model_config"]["control"] != control):
         raise ValueError("Checkpoint seed, control, or training stage differs from the requested artifact")
+    summary_path = run_dir / f"seed_{seed}" / f"{control}_summary.json"
+    if summary_path.exists():
+        result = json.loads(summary_path.read_text(encoding="utf-8"))
+        if result["fingerprint"] != manifest["fingerprint"] or result["checkpoint_sha256"] != file_digest(checkpoint_path):
+            raise ValueError("Checkpoint file differs from the completed experiment record")
     diagnostics = torch.load(run_dir / f"seed_{seed}" / "diagnostics.pt", map_location="cpu", weights_only=True)
     teacher_checkpoint = torch.load(run_dir / f"seed_{seed}" / "teacher" / "best.pt", map_location="cpu", weights_only=True)
+    if teacher_checkpoint["identity"] != identity or teacher_checkpoint["fingerprint"] != manifest["fingerprint"]:
+        raise ValueError("Teacher checkpoint input identity differs")
     teacher_hash = digest({key: tensor_digest(value) for key, value in teacher_checkpoint["model"].items()})
     if teacher_checkpoint.get("artifact") != {"seed": seed, "control": "cf", "stage": "teacher"}:
         raise ValueError("Teacher checkpoint seed or stage differs")

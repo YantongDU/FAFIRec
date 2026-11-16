@@ -48,7 +48,7 @@ class PreparedDataTests(unittest.TestCase):
         return path, features, manifest
 
     def test_features_require_explicit_mapping_without_silent_lexical_fallback(self):
-        with self.assertRaisesRegex(ValueError, 'requires --text-embeddings'):
+        with self.assertRaisesRegex(ValueError, 'requires embedding_path'):
             load_bundle(self.root)
         path, expected, manifest = self.embeddings()
         records, features, info = load_bundle(self.root, embedding_path=path)
