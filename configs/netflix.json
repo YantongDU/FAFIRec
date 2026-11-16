@@ -1,0 +1,23 @@
+{
+  "data_dir": "data/netflix",
+  "embedding_path": "data/netflix_llm2vec.pt",
+  "output_dir": "runs/netflix",
+  "seeds": [
+    2025,
+    2026,
+    2027,
+    2028,
+    2029
+  ],
+  "controls": [
+    "cf",
+    "uniform",
+    "frequency",
+    "diagnostic",
+    "diagnostic_uniform_alignment",
+    "diagnostic_no_conflict",
+    "diagnostic_loss_only",
+    "diagnostic_gradient_only",
+    "diagnostic_no_alignment"
+  ]
+}
