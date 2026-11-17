@@ -112,6 +112,12 @@ for a different experiment.
 
 Results include `analysis/paper_table.csv`, per-user target sets and ranked
 recommendation lists, selected/last checkpoints and training/diagnostic logs.
+The [completed local five-seed result record (中文)](docs/ML1M_ACTUAL_RESULTS_zh.md)
+reports the actual metrics and limitations: the full controller's overall and
+cold-user Recall@10/NDCG@10 means were below the CF control under these settings.
+All 15 selected checkpoints were independently replayed with identical per-user
+outputs. An [Overleaf-ready controlled-comparison table](docs/ML1M_control_table.tex)
+is provided for this declared protocol.
 The analyzer requires all configured jobs and verifies their identities and
 hashes before reporting seed means, sample standard deviations and paired
 comparisons. This workflow does **not** claim reproduction of the historical
