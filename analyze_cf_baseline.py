@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import copy
 import json
 import math
 import os
@@ -57,6 +58,23 @@ def write_once(path, value):
         stream.write("\n")
         stream.flush()
         os.fsync(stream.fileno())
+
+
+def canonical_validation_paths(report, project):
+    """Compare the same audit independently of relative/absolute CLI spelling."""
+    report = copy.deepcopy(report)
+    recorded = report.get('provenance', {}).get('validation_log_hashes', {})
+    canonical = {}
+    for filename, checksum in recorded.items():
+        path = Path(filename)
+        path = path.resolve() if path.is_absolute() else (Path(project) / path).resolve()
+        key = str(path)
+        require(key not in canonical or canonical[key] == checksum,
+                'Conflicting validation log hashes for one resolved file')
+        canonical[key] = checksum
+    if 'validation_log_hashes' in report.get('provenance', {}):
+        report['provenance']['validation_log_hashes'] = canonical
+    return report
 
 
 def test_metrics(path, records, cfg, seed, control, same, ids):
@@ -204,7 +222,9 @@ def execute(args):
     same(reference, search_manifest["reference"], "Main/search teacher and diagnostic provenance")
     require(len(records) == 5950, "This finalized ML-1M contract expects 5,950 users")
     audit = analyze_transfer.analyze_runs(search, comparison=CANDIDATE, baseline="reference:cf")
-    same(audit, read(search / "analysis/analysis.json"), "Verified CF validation analysis")
+    same(canonical_validation_paths(audit, project),
+         canonical_validation_paths(read(search / "analysis/analysis.json"), project),
+         "Verified CF validation analysis")
     require(audit["provenance"]["job_count"] == 5 and audit["provenance"]["all_artifact_hashes_verified"] is True,
             "CF validation search is not a complete audited five-seed grid")
     def validation_mean(role, name):

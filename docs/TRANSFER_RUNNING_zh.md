@@ -161,3 +161,5 @@ python analyze_cf_baseline.py --project-dir .
 最后一个入口要求主15组重载、两类完整分析、实际主配置及训练前的配置选择锁均存在。本机默认文件为 `data/ml1m_stable_transfer_local.json` 与 `data/final_transfer_selection_lock.json`；其他目录用 `--main-config`、`--config-lock`、`--main-run`、`--search-run` 等参数传入相应记录。锁须真实对应该次实验的验证选择及配置SHA，不能用测试结果事后改变参数。
 
 工具先锁定验证选择，再单独评估和重载所选CF，重新核对真实测试目标、已观察历史排除、用户分组与逐用户指标。输出 `analysis/strong_cf_comparison.json`，同时保留原匹配CF和验证选择的CF；精确平手保留原CF。已有重载目录或测试输出不会被覆盖。
+
+本轮上述核对已全部完成：15个主模型与5个验证选择CF均重载一致，选择的是CF学习率0.001。完整模型较旧整套训练协议的整体Recall@10/NDCG@10均值提高2.40%/2.50%，但仍低于更强CF；不能据此宣称诊断独立增益。详见[实际结果与限制](ML1M_TRANSFER_RESULTS_zh.md)及[包含两种CF的LaTeX表](ML1M_TRANSFER_TABLE.tex)。

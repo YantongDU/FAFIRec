@@ -1,0 +1,23 @@
+\begin{table*}[t]
+\centering
+\caption{ML-1M results under the locked follow-up protocol and chronological per-user split. Values are mean $\pm$ sample standard deviation over five training seeds. All models share the validation-selected teacher per seed (teacher learning rate 0.001, maximum 150 epochs). CF (shared LR) uses student learning rate 0.0003. CF (val-selected LR) uses 0.001, selected against 0.0003 by five-seed mean validation NDCG@50; both baselines are retained. Locked multimodal settings use training-only ridge initialization, CF gate prior 0.9, alignment coefficient 0.03, student learning rate 0.0003, a minimum 30-epoch adaptation window, and epoch-0-eligible validation selection.}
+\label{tab:ml1m_stable_transfer_controls}
+\begin{tabular}{llcc}
+\toprule
+Group & Model & Recall@10 & NDCG@10 \\
+\midrule
+All & CF (shared LR) & $0.131743 \pm 0.000780$ & $0.132651 \pm 0.000508$ \\
+All & CF (val-selected LR) & $0.135447 \pm 0.001523$ & $0.135793 \pm 0.001235$ \\
+All & Uniform diagnostic & $0.132266 \pm 0.002077$ & $0.133518 \pm 0.001939$ \\
+All & FAFIRec & $0.132217 \pm 0.001658$ & $0.133300 \pm 0.001634$ \\
+Cold & CF (shared LR) & $0.230196 \pm 0.003838$ & $0.156034 \pm 0.002838$ \\
+Cold & CF (val-selected LR) & $0.236639 \pm 0.009635$ & $0.156653 \pm 0.005819$ \\
+Cold & Uniform diagnostic & $0.231317 \pm 0.003433$ & $0.155739 \pm 0.002953$ \\
+Cold & FAFIRec & $0.232717 \pm 0.003427$ & $0.156520 \pm 0.002733$ \\
+Warm & CF (shared LR) & $0.044726 \pm 0.000572$ & $0.156660 \pm 0.001680$ \\
+Warm & CF (val-selected LR) & $0.045286 \pm 0.001025$ & $0.159020 \pm 0.002998$ \\
+Warm & Uniform diagnostic & $0.044821 \pm 0.000483$ & $0.157901 \pm 0.001422$ \\
+Warm & FAFIRec & $0.044866 \pm 0.000642$ & $0.157798 \pm 0.001935$ \\
+\bottomrule
+\end{tabular}
+\end{table*}

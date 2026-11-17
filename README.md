@@ -27,6 +27,14 @@ selected-checkpoint grid. The separate `configs/ml1m_cf_validation.json` and
 `analyze_cf_baseline.py` compare CF learning rates using validation before
 reporting the stronger CF baseline; see the running guide for artifact inputs.
 
+The [completed transfer results (中文)](docs/ML1M_TRANSFER_RESULTS_zh.md) report
+five seeds, all matched controls and the validation-selected stronger CF.
+The updated protocol raised the full model's overall Recall@10/NDCG@10 means
+by 2.40%/2.50% relative to the earlier full model, while remaining below the
+stronger CF baseline. No overall diagnostic advantage over the matched uniform
+control is established. An [Overleaf table](docs/ML1M_TRANSFER_TABLE.tex)
+includes both CF learning-rate settings.
+
 This entry point retains each user's complete validation and test blocks.
 Recall@K divides by that user's number of relevant items; it is not Hit@K.
 NDCG@K uses the corresponding multi-positive ideal ranking. Evaluation excludes
