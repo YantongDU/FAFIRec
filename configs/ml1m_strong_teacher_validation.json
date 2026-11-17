@@ -1,0 +1,16 @@
+{
+  "reference_run_dir": "runs/ml1m_stable_transfer_v1",
+  "output_dir": "runs/strong_teacher_adaptation_pilot_v1",
+  "allow_partial_reference": true,
+  "seeds": [2025],
+  "epochs": 150,
+  "min_epochs": 30,
+  "patience": 10,
+  "device": "cuda",
+  "threads": 4,
+  "variants": [
+    {"name": "warm30_lr1e3", "control": "diagnostic", "projection_init": "ridge", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.03, "gate_lr_multiplier": 1.0, "lr": 0.001},
+    {"name": "warm30_lr3e4", "control": "diagnostic", "projection_init": "ridge", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.03, "gate_lr_multiplier": 1.0, "lr": 0.0003},
+    {"name": "warm30_lr1e4", "control": "diagnostic", "projection_init": "ridge", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.03, "gate_lr_multiplier": 1.0, "lr": 0.0001}
+  ]
+}

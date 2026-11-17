@@ -50,6 +50,8 @@ DEFAULTS = {
     "max_users": None, "experiment_note": "",
     "projection_init": "random", "cf_prior": .5, "ridge": 1.,
     "gate_lr_multiplier": 1., "include_initial_checkpoint": False,
+    "min_epochs": 0,
+    "teacher_lr": None,
 }
 ASSUMPTIONS = {
     "split": "per-user timestamp order, stable source-order ties; floor(.8*n), floor(.1*n), remainder",
@@ -97,6 +99,12 @@ def load_config(path, overrides=None):
         raise ValueError('cf_prior must lie strictly between zero and one')
     if type(cfg['include_initial_checkpoint']) is not bool:
         raise ValueError('include_initial_checkpoint must be boolean')
+    if type(cfg['min_epochs']) is not int or not 0 <= cfg['min_epochs'] <= cfg['epochs']:
+        raise ValueError('min_epochs must be an integer between zero and the student epoch budget')
+    if cfg['teacher_lr'] is not None and (
+            isinstance(cfg['teacher_lr'], bool) or not isinstance(cfg['teacher_lr'], (int, float))
+            or not math.isfinite(cfg['teacher_lr']) or cfg['teacher_lr'] <= 0):
+        raise ValueError('teacher_lr must be null or a positive finite learning rate')
     if (isinstance(cfg["weight_decay"], bool) or not isinstance(cfg["weight_decay"], (int, float))
             or not math.isfinite(cfg["weight_decay"]) or cfg["weight_decay"] < 0):
         raise ValueError("weight_decay must be finite and nonnegative")
@@ -199,12 +207,13 @@ def fit(model, records, diagnostics, cfg, seed, out, fingerprint, identity, epoc
         restore_rng(checkpoint["rng"])
     device = next(model.parameters()).device
     started = time.monotonic()
+    min_epochs = cfg.get('min_epochs', 0)
     if first_epoch == 1 and cfg.get('include_initial_checkpoint', False):
         _, initial_validation = evaluate(model, records, 'validation', diagnostics, cfg, seed, False)
         best = initial_validation['all'][f"ndcg{cfg['selection_k']}"]
         best_state, best_epoch = cpu_state(model), 0
         json_dump(out / 'initial_validation.json', initial_validation)
-    if stale < cfg["patience"]:
+    if stale < cfg["patience"] or first_epoch <= min_epochs:
         for epoch in range(first_epoch, epochs + 1):
             data = TrainingDataset(records, model.n_items, cfg["max_len"], seed + epoch)
             generator = torch.Generator().manual_seed(seed + epoch)
@@ -243,7 +252,7 @@ def fit(model, records, diagnostics, cfg, seed, out, fingerprint, identity, epoc
                 "epoch": epoch, "stale": stale, "logs": logs, "rng": rng_state()})
             print(json.dumps({"control": model.control, "seed": seed, "epoch": epoch,
                               f"validation_ndcg{cfg['selection_k']}": metric}), flush=True)
-            if stale >= cfg["patience"]:
+            if epoch >= min_epochs and stale >= cfg["patience"]:
                 break
     if best_state is None:
         raise RuntimeError("No selected checkpoint")
@@ -298,7 +307,8 @@ def run(cfg, resume=False):
         seed_dir.mkdir(exist_ok=True)
         seed_everything(seed)
         teacher = PaperFAFIRecModel(text_features=features, **model_config(cfg, "cf", identity["items"])).to(device)
-        fit(teacher, records, torch.zeros(len(records), 2), cfg, seed, seed_dir / "teacher", fingerprint,
+        teacher_cfg = {**cfg, 'lr': cfg.get('teacher_lr') if cfg.get('teacher_lr') is not None else cfg['lr']}
+        fit(teacher, records, torch.zeros(len(records), 2), teacher_cfg, seed, seed_dir / "teacher", fingerprint,
             identity, cfg["teacher_epochs"], resume, {"seed": seed, "control": "cf", "stage": "teacher"})
         teacher_hash = tensor_state_digest(teacher)
         diag_path = seed_dir / "diagnostics.pt"

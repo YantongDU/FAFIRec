@@ -18,7 +18,8 @@ from analyze_results import _holm_adjust, paired_seed_comparison
 from fafirec.multitarget_metrics import summarize_multitarget_rows
 from fafirec.runner import file_digest, json_dump
 from fafirec.validation_runner import (
-    PROTOCOL, _artifact, _check_checkpoint, _fingerprint, _training_config,
+    PROTOCOL, _artifact, _check_checkpoint, _fingerprint, _optimization_config,
+    _training_config, _variant_config,
     load_reference, model_config, normalize_config, source_identity,
 )
 
@@ -225,7 +226,8 @@ def analyze_runs(run_dir, comparison=None, baseline=None, bootstrap_samples=1000
         if (saved["per_user_sha256"] != file_digest(csv_path)
                 or saved["checkpoint_sha256"] != file_digest(checkpoint_path)):
             raise ValueError("Validation CSV or checkpoint checksum differs")
-        local_cfg = {**cfg, "align_weight": variant["align_weight"], "gate_lr_multiplier": variant["gate_lr_multiplier"]}
+        local_cfg = _variant_config(cfg, variant)
+        _same(_optimization_config(local_cfg), saved.get("optimization_configuration"), "Effective optimization configuration")
         checkpoint = torch.load(checkpoint_path, weights_only=True, map_location="cpu")
         _check_checkpoint(checkpoint, identity, manifest["fingerprint"], _artifact(manifest, s, variant),
                           model_config(local_cfg, variant["control"], identity["items"]))
@@ -237,7 +239,7 @@ def analyze_runs(run_dir, comparison=None, baseline=None, bootstrap_samples=1000
         _same(actual, saved["validation"], "Validation summary")
         for key in ("selected_validation_metric", f"selected_validation_ndcg{cfg['selection_k']}"):
             _same(actual["all"][f"ndcg{cfg['selection_k']}"], saved[key], f"Summary {key}")
-        _same(actual, _selected_log(directory / name, checkpoint, cfg, log_hashes), "Selected validation log")
+        _same(actual, _selected_log(directory / name, checkpoint, local_cfg, log_hashes), "Selected validation log")
         initial_path = directory / name / "initial_validation.json"
         _same(_read(initial_path), saved["initial_validation"], "Initial validation summary")
         log_hashes[str(initial_path)] = file_digest(initial_path)

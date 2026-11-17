@@ -26,11 +26,12 @@ from .runner import (digest, file_digest, json_dump, resolve_device, runtime_ide
 from .transfer import initialize_transfer
 
 ROOT = Path(__file__).resolve().parents[1]
-PROTOCOL = "ml1m_validation_only_transfer_search_v1"
-OVERRIDES = {"epochs", "patience", "device", "threads"}
-CONFIG_KEYS = {"reference_run_dir", "output_dir", "seeds", "variants"} | OVERRIDES
+PROTOCOL = "ml1m_validation_only_transfer_search_v2"
+OVERRIDES = {"epochs", "patience", "device", "threads", "lr", "min_epochs"}
+CONFIG_KEYS = {"reference_run_dir", "output_dir", "seeds", "variants", "allow_partial_reference"} | OVERRIDES
 VARIANT_DEFAULTS = {"control": "diagnostic", "projection_init": "random", "cf_prior": .5,
-                    "ridge": 1., "align_weight": .3, "gate_lr_multiplier": 1.}
+                    "ridge": 1., "align_weight": .3, "gate_lr_multiplier": 1.,
+                    "lr": None, "min_epochs": None}
 PAYLOAD_KEYS = ("protocol", "search_config", "training_config", "identity", "source_hashes",
                 "runtime", "reference", "selection")
 
@@ -54,6 +55,9 @@ def normalize_config(supplied):
     if required - set(supplied):
         raise ValueError(f"Missing configuration keys: {sorted(required - set(supplied))}")
     cfg = copy.deepcopy(supplied)
+    cfg.setdefault("allow_partial_reference", False)
+    if type(cfg["allow_partial_reference"]) is not bool:
+        raise ValueError("allow_partial_reference must be boolean")
     for key in ("reference_run_dir", "output_dir"):
         if not isinstance(cfg[key], str) or not cfg[key]:
             raise ValueError(f"{key} must be a nonempty path")
@@ -86,6 +90,10 @@ def normalize_config(supplied):
             raise ValueError("CF has no text projection")
         for key in ("cf_prior", "ridge", "align_weight", "gate_lr_multiplier"):
             variant[key] = _number(variant[key], key, key in {"ridge", "gate_lr_multiplier"})
+        if variant["lr"] is not None:
+            variant["lr"] = _number(variant["lr"], "variant lr", True)
+        if variant["min_epochs"] is not None and (type(variant["min_epochs"]) is not int or variant["min_epochs"] < 0):
+            raise ValueError("variant min_epochs must be a nonnegative integer or null")
         if not 0 < variant["cf_prior"] < 1 or variant["align_weight"] < 0:
             raise ValueError("cf_prior must be in (0,1) and align_weight nonnegative")
         variants.append(variant)
@@ -95,6 +103,16 @@ def normalize_config(supplied):
             raise ValueError(f"{key} must be a positive integer")
     if "device" in cfg and cfg["device"] not in {"cpu", "cuda", "auto"}:
         raise ValueError("device must be cpu, cuda or auto")
+    if cfg.get("lr") is not None:
+        cfg["lr"] = _number(cfg["lr"], "lr", True)
+    if cfg.get("min_epochs") is not None and (type(cfg["min_epochs"]) is not int or cfg["min_epochs"] < 0):
+        raise ValueError("min_epochs must be a nonnegative integer or null")
+    if "epochs" in cfg:
+        if cfg.get("min_epochs") is not None and cfg["min_epochs"] > cfg["epochs"]:
+            raise ValueError("min_epochs must not exceed epochs")
+        for variant in variants:
+            if variant["min_epochs"] is not None and variant["min_epochs"] > cfg["epochs"]:
+                raise ValueError("variant min_epochs must not exceed epochs")
     return cfg
 
 
@@ -151,12 +169,35 @@ def load_reference(search):
         raise ValueError("Reference input mapping, users or text features changed")
     summary = _read(root / "summary.json")
     expected = {(s, c) for s in manifest["config"]["seeds"] for c in manifest["config"]["controls"]}
-    indexed = {(row["seed"], row["control"]): row for row in summary}
-    if len(indexed) != len(summary) or set(indexed) != expected:
+    if not isinstance(summary, list):
+        raise ValueError("Reference summary must be a list of completed jobs")
+    try:
+        indexed = {(row["seed"], row["control"]): row for row in summary}
+    except (KeyError, TypeError) as error:
+        raise ValueError("Invalid reference summary job identity") from error
+    if (any(type(row.get("seed")) is not int or not isinstance(row.get("control"), str) for row in summary)
+            or len(indexed) != len(summary) or set(indexed) - expected):
+        raise ValueError("Reference summary contains duplicate or undeclared jobs")
+    allow_partial = search.get("allow_partial_reference", False)
+    if type(allow_partial) is not bool:
+        raise ValueError("allow_partial_reference must be boolean")
+    if not allow_partial and set(indexed) != expected:
         raise ValueError("Reference must contain its complete configured grid")
+    required_controls = {"cf", "uniform", "diagnostic"}
+    if allow_partial:
+        requested = {(s, c) for s in search["seeds"] for c in required_controls}
+        if requested - set(indexed):
+            raise ValueError("Partial reference lacks complete cf/uniform/diagnostic jobs for a requested seed")
+    else:
+        requested = {(s, c) for s in search["seeds"] for c in manifest["config"]["controls"]}
     provenance = {"manifest_sha256": file_digest(root / "manifest.json"),
                   "summary_sha256": file_digest(root / "summary.json"),
-                  "fingerprint": manifest["fingerprint"], "seeds": {}}
+                  "fingerprint": manifest["fingerprint"], "seeds": {},
+                  "allow_partial_reference": allow_partial,
+                  "partial_reference": set(indexed) != expected,
+                  "requested_seed_scope": {"seeds": list(search["seeds"]),
+                      "required_completed_jobs": [[s, c] for s, c in sorted(requested)]},
+                  "completed_summary_jobs": [[s, c] for s, c in sorted(indexed)]}
     loaded = {}
     for seed in search["seeds"]:
         directory = root / f"seed_{seed}"
@@ -227,14 +268,37 @@ def _artifact(manifest, seed, variant):
     return {"seed": seed, "control": variant["control"], "variant": variant["name"],
         "stage": "validation_candidate", "teacher_sha256": cached["teacher_tensor_sha256"],
         "diagnostics_tensor_sha256": cached["diagnostics_tensor_sha256"],
-        "diagnostics_file_sha256": cached["diagnostics_file_sha256"], "initialization": variant}
+        "diagnostics_file_sha256": cached["diagnostics_file_sha256"], "initialization": variant,
+        "optimization_configuration": _optimization_config(_variant_config(manifest["training_config"], variant))}
 
 
 def _training_config(base, search):
     cfg = copy.deepcopy(base)
-    cfg.update({key: search[key] for key in OVERRIDES if key in search})
+    cfg.update({key: search[key] for key in OVERRIDES if search.get(key) is not None})
+    cfg.setdefault("min_epochs", 0)
     cfg["include_initial_checkpoint"] = True
+    _variant_config(cfg, {})
+    for variant in search["variants"]:
+        _variant_config(cfg, variant)
     return cfg
+
+
+def _variant_config(base, variant):
+    """Resolve candidate optimizer/early-stop settings identically in all stages."""
+    cfg = copy.deepcopy(base)
+    for key in ("align_weight", "gate_lr_multiplier", "lr", "min_epochs"):
+        if variant.get(key) is not None:
+            cfg[key] = variant[key]
+    cfg.setdefault("min_epochs", 0)
+    cfg["lr"] = _number(cfg["lr"], "effective lr", True)
+    if type(cfg["min_epochs"]) is not int or not 0 <= cfg["min_epochs"] <= cfg["epochs"]:
+        raise ValueError("Effective min_epochs must be a nonnegative integer at most epochs")
+    return cfg
+
+
+def _optimization_config(cfg):
+    return {key: cfg[key] for key in ("lr", "min_epochs", "epochs", "patience")} | {
+        "gate_lr_multiplier": cfg.get("gate_lr_multiplier", 1.)}
 
 
 def _aggregate(results, names, metric):
@@ -300,8 +364,7 @@ def run(search, resume=False):
             result_path = directory / f"{name}_summary.json"
             model_path = directory / name / "best.pt"
             csv_path = directory / f"{name}_validation.csv"
-            local_cfg = {**cfg, "align_weight": variant["align_weight"],
-                         "gate_lr_multiplier": variant["gate_lr_multiplier"]}
+            local_cfg = _variant_config(cfg, variant)
             artifact = _artifact(manifest, seed, variant)
             if resume and result_path.exists():
                 result = _read(result_path)
@@ -310,6 +373,7 @@ def run(search, resume=False):
                                   model_config(local_cfg, variant["control"], identity["items"]))
                 if (result["fingerprint"] != manifest["fingerprint"] or result["seed"] != seed
                         or result["variant"] != name or result["split"] != "validation"
+                        or result.get("optimization_configuration") != _optimization_config(local_cfg)
                         or result["per_user_sha256"] != file_digest(csv_path)
                         or result["checkpoint_sha256"] != file_digest(model_path)):
                     raise ValueError("Completed validation artifact integrity check failed")
@@ -327,6 +391,7 @@ def run(search, resume=False):
             write_rows(csv_path, rows)
             result = {"seed": seed, "variant": name, "control": variant["control"], "split": "validation",
                 "fingerprint": manifest["fingerprint"], "initialization": initialization,
+                "optimization_configuration": _optimization_config(local_cfg),
                 "initial_validation": initial_validation, **selected, "validation": value,
                 "per_user_sha256": file_digest(csv_path), "checkpoint_sha256": file_digest(model_path)}
             json_dump(result_path, result)
@@ -363,11 +428,9 @@ def load_validation_checkpoint(run_dir, seed, variant, device=None):
     records, features, identity, base, reference, loaded = load_reference(search)
     if identity != manifest["identity"] or reference != manifest["reference"]:
         raise ValueError("Reference inputs, teacher or diagnostics changed")
-    cfg = _training_config(base, search)
     choice = variants[variant]
-    cfg.update({"align_weight": choice["align_weight"], "gate_lr_multiplier": choice["gate_lr_multiplier"]})
-    if cfg != {**manifest["training_config"], "align_weight": choice["align_weight"],
-               "gate_lr_multiplier": choice["gate_lr_multiplier"]}:
+    cfg = _variant_config(_training_config(base, search), choice)
+    if cfg != _variant_config(manifest["training_config"], choice):
         raise ValueError("Recorded training configuration differs")
     if device is not None:
         if device not in {"cpu", "cuda", "auto"}:
@@ -381,6 +444,7 @@ def load_validation_checkpoint(run_dir, seed, variant, device=None):
     summary_path = root / f"seed_{seed}" / f"{variant}_summary.json"
     result = _read(summary_path)
     if (result["fingerprint"] != manifest["fingerprint"]
+            or result.get("optimization_configuration") != _optimization_config(cfg)
             or result["checkpoint_sha256"] != file_digest(checkpoint_path)
             or result["per_user_sha256"] != file_digest(root / f"seed_{seed}" / f"{variant}_validation.csv")):
         raise ValueError("Selected validation artifacts changed")

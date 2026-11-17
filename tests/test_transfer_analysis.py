@@ -58,6 +58,11 @@ class TransferAnalysisTests(unittest.TestCase):
             analyze_runs(self.root)
         self.write("seed_17/ridge_prior_summary.json", original_job)
         self.write("summary.json", [original_job])
+        self.change_job(lambda saved: saved["optimization_configuration"].__setitem__("lr", .123))
+        with self.assertRaisesRegex(ValueError, "Effective optimization configuration"):
+            analyze_runs(self.root)
+        self.write("seed_17/ridge_prior_summary.json", original_job)
+        self.write("summary.json", [original_job])
         selection = self.read("selection.json")
         selection["candidates"][0]["metrics"]["all"]["ndcg50"]["mean"] += .001
         self.write("selection.json", selection)

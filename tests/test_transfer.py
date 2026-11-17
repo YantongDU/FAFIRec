@@ -112,6 +112,34 @@ class TransferInitializationTests(unittest.TestCase):
             for name, value in model.state_dict().items():
                 torch.testing.assert_close(value, before[name], rtol=0, atol=0)
 
+    def test_adaptation_window_keeps_epoch_zero_but_allows_recovery_and_resume(self):
+        from fafirec.ratio_runner import DEFAULTS, fit
+        cfg = {**DEFAULTS, 'd_model': 4, 'max_len': 5, 'n_heads': 2, 'n_layers': 1,
+               'batch_size': 2, 'threads': 2, 'patience': 1, 'include_initial_checkpoint': True,
+               'min_epochs': 3}
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def run_model(model, out, epochs, values, resume=False):
+                iterator = iter(values)
+                with patch('fafirec.ratio_runner.evaluate', side_effect=lambda *a, **k: ([], {'all': {'ndcg50': next(iterator)}})):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        return fit(model, self.records, torch.zeros(2, 2), cfg, 17, out,
+                                   'same', {}, epochs, resume, {'stage': 'validation_candidate'})
+            torch.manual_seed(71)
+            full = self.student()
+            selected = run_model(full, root / 'full', 3, [.9, .1, .2, .95])
+            self.assertEqual(selected['selected_epoch'], 3)
+            self.assertEqual(selected['epochs_completed'], 3)
+            torch.manual_seed(71)
+            partial = self.student()
+            run_model(partial, root / 'resumed', 1, [.9, .1])
+            torch.manual_seed(999)
+            resumed = self.student()
+            restored = run_model(resumed, root / 'resumed', 3, [.2, .95], True)
+            self.assertEqual(restored['selected_epoch'], 3)
+            for name, value in full.state_dict().items():
+                torch.testing.assert_close(value, resumed.state_dict()[name], rtol=0, atol=0)
+
 
 if __name__ == '__main__':
     unittest.main()

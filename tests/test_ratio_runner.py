@@ -122,7 +122,7 @@ class RatioRunnerTests(unittest.TestCase):
     def test_transfer_flags_reach_generic_training_artifacts_and_reload(self):
         cfg = {**self.cfg, 'controls': ['cf', 'diagnostic'], 'projection_init': 'ridge',
                'cf_prior': .9, 'ridge': 1., 'gate_lr_multiplier': 10.,
-               'include_initial_checkpoint': True}
+               'include_initial_checkpoint': True, 'teacher_lr': .0007}
         with contextlib.redirect_stdout(io.StringIO()):
             results = run(cfg)
         directory = self.root / 'run/seed_17'
@@ -132,6 +132,8 @@ class RatioRunnerTests(unittest.TestCase):
         self.assertTrue((directory / 'diagnostic/initial_validation.json').exists())
         optimizer = torch.load(directory / 'diagnostic/last.pt', weights_only=True)['optimizer']
         self.assertEqual([group['lr'] for group in optimizer['param_groups']], [.001, .01])
+        teacher_optimizer = torch.load(directory / 'teacher/last.pt', weights_only=True)['optimizer']
+        self.assertEqual(teacher_optimizer['param_groups'][0]['lr'], .0007)
         cf = torch.load(directory / 'cf/best.pt', weights_only=True)
         self.assertEqual(cf['artifact']['initialization_configuration']['projection_init'], 'random')
         model, records, diag, restored_cfg, _ = load_selected(self.root / 'run', 17, 'diagnostic', 'cpu')
