@@ -17,6 +17,10 @@ and [中文运行说明](docs/RUNNING_zh.md).
 [ML-1M paper-protocol record (中文)](docs/ML1M_PAPER_PROTOCOL_zh.md), including
 the declared choices and differences from the historical manuscript.
 
+For the new validation-only transfer pilot, initialization options and replay
+commands, see [迁移初始化与验证运行说明](docs/TRANSFER_RUNNING_zh.md) and
+[原因审计与固定验证方案](docs/ML1M_IMPROVEMENT_DIAGNOSIS_zh.md).
+
 This entry point retains each user's complete validation and test blocks.
 Recall@K divides by that user's number of relevant items; it is not Hit@K.
 NDCG@K uses the corresponding multi-positive ideal ranking. Evaluation excludes
