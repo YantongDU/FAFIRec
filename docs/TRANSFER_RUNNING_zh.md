@@ -130,7 +130,7 @@ python train_ml1m.py --config path/to/new_config.json --resume
 
 ## 最终配置与报告边界
 
-原四候选pilot复用30轮教师；v1的成熟教师运行尚未构成完整五种子对照。v2将依据适应窗口pilot的验证选择，更新 `configs/ml1m_stable_transfer.json`：教师上限150轮、`teacher_lr=0.001`、`min_epochs=30`，学生`lr`取验证锁定值。当前不能把尚未选出的最终学习率写成已确定配置。
+原四候选pilot复用30轮教师；v1的成熟教师运行未构成完整五种子对照。v2适应窗口pilot已按验证NDCG@50选出学生`lr=0.0003`、`min_epochs=30`，对应分数0.23146774133484；其初始值为0.22345551823110546。最终配置已锁定于 `configs/ml1m_stable_transfer.json`：教师上限150轮、`teacher_lr=0.001`，ridge初始化、CF门起点0.9、对齐系数0.03、门控学习率倍率1。此为单种子验证选择，完整多种子测试结果另行记录。
 
 最终CF、uniform与diagnostic需使用同一个选中教师、对应固定诊断及可比较的学生训练/选择规则。新教师必须重新构建匹配诊断，不能复用另一教师的缓存。配置文件是否已锁定、运行是否完整，均以实际记录为准。
 
@@ -139,3 +139,25 @@ python train_ml1m.py --config path/to/new_config.json --resume
 原测试结果已知，后续过程是透明的迭代benchmark开发，不能描述成从未观察过测试结果的pristine确认试验。即使后续完整运行有更高均值，也需报告配置选择过程、全部匹配对照与多种子不确定性，不能直接宣称诊断组件的独立增益。
 
 原始数据、LLM权重、文本特征、诊断缓存、检查点及逐用户运行输出均保留在本地被忽略的 `data/`、`runs/` 中，不提交Git。可提交的配置和汇总文档不应混入这些输入或缓存。
+
+## 完整重载与保守CF核对
+
+主五种子网格完成后，先汇总并独立重载全部15个选中检查点：
+
+```bash
+python analyze_ml1m.py runs/ml1m_stable_transfer_v2
+python analyze_ml1m.py runs/ml1m_stable_transfer_v2 --baseline cf --output-dir runs/ml1m_stable_transfer_v2/analysis_vs_cf
+python verify_ml1m_replays.py runs/ml1m_stable_transfer_v2
+```
+
+首个种子显示CF在学习率0.001下的验证NDCG@50为0.23217186130194542，高于共同微调设置0.0003下的0.22662161309268164。因此预先安排独立CF学习率核对，完整复用主实验五个教师和诊断，按五种子平均验证NDCG@50比较0.001和0.0003；不能只据共同设置较弱的CF宣称整体优势。
+
+```bash
+python validate_ml1m.py --config configs/ml1m_cf_validation.json
+python analyze_transfer.py runs/cf_lr_validation_v2 --comparison cf_lr1e3 --baseline reference:cf
+python analyze_cf_baseline.py --project-dir .
+```
+
+最后一个入口要求主15组重载、两类完整分析、实际主配置及训练前的配置选择锁均存在。本机默认文件为 `data/ml1m_stable_transfer_local.json` 与 `data/final_transfer_selection_lock.json`；其他目录用 `--main-config`、`--config-lock`、`--main-run`、`--search-run` 等参数传入相应记录。锁须真实对应该次实验的验证选择及配置SHA，不能用测试结果事后改变参数。
+
+工具先锁定验证选择，再单独评估和重载所选CF，重新核对真实测试目标、已观察历史排除、用户分组与逐用户指标。输出 `analysis/strong_cf_comparison.json`，同时保留原匹配CF和验证选择的CF；精确平手保留原CF。已有重载目录或测试输出不会被覆盖。

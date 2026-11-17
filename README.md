@@ -21,6 +21,12 @@ For the new validation-only transfer pilot, initialization options and replay
 commands, see [迁移初始化与验证运行说明](docs/TRANSFER_RUNNING_zh.md) and
 [原因审计与固定验证方案](docs/ML1M_IMPROVEMENT_DIAGNOSIS_zh.md).
 
+`configs/ml1m_stable_transfer.json` records the selected initialization and
+fine-tuning settings. `verify_ml1m_replays.py` independently checks the complete
+selected-checkpoint grid. The separate `configs/ml1m_cf_validation.json` and
+`analyze_cf_baseline.py` compare CF learning rates using validation before
+reporting the stronger CF baseline; see the running guide for artifact inputs.
+
 This entry point retains each user's complete validation and test blocks.
 Recall@K divides by that user's number of relevant items; it is not Hit@K.
 NDCG@K uses the corresponding multi-positive ideal ranking. Evaluation excludes

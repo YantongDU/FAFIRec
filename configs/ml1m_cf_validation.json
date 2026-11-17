@@ -1,0 +1,13 @@
+{
+  "reference_run_dir": "runs/ml1m_stable_transfer_v2",
+  "output_dir": "runs/cf_lr_validation_v2",
+  "seeds": [2025, 2026, 2027, 2028, 2029],
+  "epochs": 150,
+  "min_epochs": 30,
+  "patience": 10,
+  "device": "cuda",
+  "threads": 4,
+  "variants": [
+    {"name": "cf_lr1e3", "control": "cf", "projection_init": "random", "cf_prior": 0.5, "ridge": 1.0, "align_weight": 0.03, "gate_lr_multiplier": 1.0, "lr": 0.001, "min_epochs": 30}
+  ]
+}
