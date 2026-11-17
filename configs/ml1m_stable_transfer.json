@@ -1,0 +1,59 @@
+{
+  "data_dir": "data/ml1m_paper_ratio",
+  "embedding_path": "data/ml1m_qwen3_06b.pt",
+  "feature_mode": "embeddings",
+  "lexical_dim": 128,
+  "output_dir": "runs/ml1m_stable_transfer_v2",
+  "seeds": [
+    2025,
+    2026,
+    2027,
+    2028,
+    2029
+  ],
+  "controls": [
+    "cf",
+    "uniform",
+    "diagnostic"
+  ],
+  "epochs": 150,
+  "teacher_epochs": 150,
+  "patience": 10,
+  "batch_size": 2048,
+  "eval_batch": 128,
+  "item_chunk_size": 4096,
+  "max_len": 50,
+  "d_model": 64,
+  "n_heads": 2,
+  "n_layers": 1,
+  "dropout": 0.1,
+  "lr": 0.0003,
+  "weight_decay": 1e-05,
+  "optimizer": "adam",
+  "grad_clip": 5.0,
+  "align_weight": 0.03,
+  "bandwidths": [
+    0.5,
+    1.0,
+    2.0,
+    3.5,
+    5.0
+  ],
+  "ks": [
+    10,
+    50
+  ],
+  "selection_k": 50,
+  "candidate_policy": "exclude_seen",
+  "device": "cuda",
+  "threads": 4,
+  "max_users": null,
+  "experiment_note": "Locked after predeclared validation-only initialization and strong-teacher adaptation pilots (seed2025); same data/features/candidates/metrics. Teacher uses Adam lr0.001 and validation early stopping, max150; all CF/uniform/diagnostic students share its initialization and matched selected student lr, max150 and min adaptation window. Epoch0 remains eligible. Original test results were previously known; this is a transparent follow-up benchmark, not an untouched confirmatory test. Do not use new test results to change this locked configuration.",
+  "teacher_lr": 0.001,
+  "projection_init": "ridge",
+  "cf_prior": 0.9,
+  "ridge": 1.0,
+  "gate_lr_multiplier": 1.0,
+  "include_initial_checkpoint": true,
+  "min_epochs": 30
+}
