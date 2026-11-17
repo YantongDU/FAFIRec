@@ -1,0 +1,42 @@
+{
+  "data_dir": "data/ml1m_paper_ratio",
+  "embedding_path": "data/ml1m_qwen3_06b.pt",
+  "feature_mode": "embeddings",
+  "output_dir": "runs/ml1m_paper_qwen3_v1",
+  "seeds": [
+    2025,
+    2026,
+    2027,
+    2028,
+    2029
+  ],
+  "controls": [
+    "cf",
+    "uniform",
+    "diagnostic"
+  ],
+  "epochs": 150,
+  "teacher_epochs": 30,
+  "patience": 10,
+  "batch_size": 2048,
+  "eval_batch": 128,
+  "max_len": 50,
+  "d_model": 64,
+  "n_heads": 2,
+  "n_layers": 1,
+  "dropout": 0.1,
+  "optimizer": "adam",
+  "weight_decay": 1e-05,
+  "lr": 0.001,
+  "ks": [
+    10,
+    50
+  ],
+  "selection_k": 50,
+  "candidate_policy": "exclude_seen",
+  "device": "cuda",
+  "threads": 4,
+  "max_users": null,
+  "experiment_note": "User-confirmed chronological80/10/10; actual retained population5950users/3883items. Genuine fixed Qwen3-Embedding0.6B item vectors, explicitly selected because original text checkpoint is unspecified. Revised zero-initialized linear controller; not historical TableII reproduction.",
+  "align_weight": 0.3
+}

@@ -1,0 +1,20 @@
+\begin{table*}[t]
+\centering
+\caption{Controlled ML-1M comparison under the declared chronological split. Mean $\pm$ sample standard deviation over five training seeds. This is not a reproduction of the historical table.}
+\label{tab:ml1m_chronological_controls}
+\begin{tabular}{llcc}
+\toprule
+Group & Model & Recall@10 & NDCG@10 \\
+\midrule
+All & CF & $0.133697 \pm 0.000608$ & $0.134432 \pm 0.001390$ \\
+All & Uniform diagnostic & $0.129565 \pm 0.001544$ & $0.130381 \pm 0.001380$ \\
+All & FAFIRec & $0.129121 \pm 0.001813$ & $0.130051 \pm 0.001949$ \\
+Cold & CF & $0.233557 \pm 0.005579$ & $0.156276 \pm 0.003282$ \\
+Cold & Uniform diagnostic & $0.231373 \pm 0.005730$ & $0.153072 \pm 0.002429$ \\
+Cold & FAFIRec & $0.228515 \pm 0.005426$ & $0.151631 \pm 0.002927$ \\
+Warm & CF & $0.044869 \pm 0.000489$ & $0.156672 \pm 0.001227$ \\
+Warm & Uniform diagnostic & $0.044078 \pm 0.001194$ & $0.155790 \pm 0.003336$ \\
+Warm & FAFIRec & $0.044312 \pm 0.000364$ & $0.157039 \pm 0.002387$ \\
+\bottomrule
+\end{tabular}
+\end{table*}

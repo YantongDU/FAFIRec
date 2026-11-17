@@ -11,7 +11,120 @@ historical paper tables**. No benchmark performance claim follows from the
 included smoke configuration. See [method correspondence](docs/METHOD_IMPLEMENTATION.md)
 and [中文运行说明](docs/RUNNING_zh.md).
 
-## Installation
+## MovieLens-1M: chronological 80/10/10, multiple held-out positives
+
+**Use this workflow for the current ML-1M experiment.** Read the complete
+[ML-1M paper-protocol record (中文)](docs/ML1M_PAPER_PROTOCOL_zh.md), including
+the declared choices and differences from the historical manuscript.
+
+This entry point retains each user's complete validation and test blocks.
+Recall@K divides by that user's number of relevant items; it is not Hit@K.
+NDCG@K uses the corresponding multi-positive ideal ranking. Evaluation excludes
+the observed history from the full movie catalog, without restoring targets.
+Validation observes training events only; test observes training plus the
+complete validation block.
+
+| Workflow | Training / evaluation / analysis | Data and metrics |
+|---|---|---|
+| Current ML-1M ratio protocol | `train_ml1m.py` / `evaluate_ml1m.py` / `analyze_ml1m.py` | Version2, chronological80/10/10, multi-positive user-macro Recall/NDCG |
+| Existing leave-two-out workflow | `training.py` / `evaluate.py` / `analyze_results.py` | Version1, one validation and one test target per user |
+
+**Do not mix these data formats, checkpoints, or analysis commands.** In
+particular, `configs/ml1m.json` belongs to the older single-target workflow;
+the current ratio experiment uses `configs/ml1m_paper_qwen3.json`.
+
+### Install the ML-1M experiment environment
+
+The pinned ML-1M dependencies require Python 3.11 or newer; the local run uses
+Python 3.12.14. Create and activate a dedicated Python environment. Install the appropriate
+official PyTorch wheel first; the local GPU experiment uses CUDA12.6:
+
+```bash
+python -m venv .venv
+# Activate .venv using your operating system's normal command.
+python -m pip install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu126
+python -m pip install -r requirements_ml1m.txt
+python run_tests.py
+```
+
+`requirements_ml1m.txt` pins the training and Qwen encoding dependencies. The
+supplied paper-protocol configuration requests CUDA. A CPU experiment needs a
+CPU PyTorch installation and an explicit device choice; feature encoding on CPU
+also requires `--dtype float32`.
+
+### Prepare data and real semantic features
+
+Obtain and extract the raw [MovieLens-1M release from GroupLens](https://grouplens.org/datasets/movielens/1m/)
+before preparation. The input directory must contain `ratings.dat` and
+`movies.dat`; `users.dat` availability is recorded, but demographic fields are
+not consumed by the revised item-text model.
+
+```bash
+python prepare_ml1m_paper.py --input data/raw/ml-1m --output data/ml1m_paper_ratio
+```
+
+The adapter retains ratings4/5, orders each user by timestamp with source-order
+ties, and splits events as `floor(0.8n)`, `floor(0.1n)`, and the remainder. It
+records eligibility exclusions and file hashes. No undocumented subsampling is
+introduced to force the historical table's population counts.
+
+Before generating features, obtain the fixed
+[official Qwen3-Embedding-0.6B model](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B/tree/97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3)
+in a local model directory. The explicit download command below retrieves that
+official revision and creates the verified asset manifest required by the
+generator; it can also verify already downloaded matching assets. Training does
+not download model weights.
+
+```bash
+python generate_ml1m_text_features.py --model-dir data/models/qwen3_embedding_06b --download-only
+python generate_ml1m_text_features.py --model-dir data/models/qwen3_embedding_06b --data-dir data/ml1m_paper_ratio --output data/ml1m_qwen3_06b.pt --device cuda --dtype float16 --batch-size 16 --max-length 128
+```
+
+The generator encodes static movie titles/year and genres only, and writes
+the feature tensor plus its ordered MovieID/hash manifest. It records the
+fixed model revision, pooling, tokenization, truncation and software versions.
+This is an explicit Qwen encoder choice, not PAD's original LLM2Vec artifact.
+Raw MovieLens files, generated features and LLM weights are local inputs under
+Git-ignored `data/`; they are not bundled or submitted to the repository.
+
+### Train five seeds, resume, analyze and reload
+
+```bash
+# Seeds2025--2029; CF, uniform fusion and diagnostic control.
+python train_ml1m.py --config configs/ml1m_paper_qwen3.json
+
+# Continue the same interrupted experiment.
+python train_ml1m.py --config configs/ml1m_paper_qwen3.json --resume
+
+# Run after the complete configured seed/control grid has finished.
+python analyze_ml1m.py runs/ml1m_paper_qwen3_v1
+
+# Independently reload one selected checkpoint into a new evaluation directory.
+python evaluate_ml1m.py --run-dir runs/ml1m_paper_qwen3_v1 --seed 2025 --control diagnostic --split test --output-dir runs/ml1m_paper_qwen3_reloaded_2025
+```
+
+The configuration uses d64, batch2048, Adam/lr0.001, alignment coefficient0.3,
+coupled weight decay1e-5, validation NDCG@50, patience10 and at most150 student
+epochs. Teacher budget30, sequence length50 and encoder details are declared
+completion choices; see the protocol record. Keep the source, input features,
+configuration and runtime unchanged when resuming. Use a fresh output directory
+for a different experiment.
+
+Results include `analysis/paper_table.csv`, per-user target sets and ranked
+recommendation lists, selected/last checkpoints and training/diagnostic logs.
+The [completed local five-seed result record (中文)](docs/ML1M_ACTUAL_RESULTS_zh.md)
+reports the actual metrics and limitations: the full controller's overall and
+cold-user Recall@10/NDCG@10 means were below the CF control under these settings.
+All 15 selected checkpoints were independently replayed with identical per-user
+outputs. An [Overleaf-ready controlled-comparison table](docs/ML1M_control_table.tex)
+is provided for this declared protocol.
+The analyzer requires all configured jobs and verifies their identities and
+hashes before reporting seed means, sample standard deviations and paired
+comparisons. This workflow does **not** claim reproduction of the historical
+table, superiority of the current model, or completion of all competing
+baselines from the paper.
+
+## Existing single-target workflow: installation
 
 Python 3.10 or newer is required. Local CPU checks use Python 3.12; the CI
 workflow is configured for Python 3.11 and the declared dependency versions.
@@ -28,7 +141,7 @@ machine before running the project. Explicit `--device cuda` fails if CUDA is
 unavailable; `auto` selects an available CUDA device or CPU. CPU and GPU results
 are not claimed to be bitwise equal.
 
-## Run the included data through the complete pipeline
+## Existing single-target workflow: run the included data
 
 The public Pantry histories have no timestamps. Source order must be explicitly
 accepted and is recorded as chronology-unverified.
@@ -48,7 +161,10 @@ results**. Output directories are protected from accidental overwrites; choose
 `--output-dir` for a new run. `--resume` accepts identical source, data,
 configuration and recorded runtime and restores epoch-boundary RNG state.
 
-## Prepare benchmark inputs
+## Existing single-target workflow: alternative benchmark adapters
+
+The following commands prepare leave-two-out data. For the current ML-1M
+80/10/10 protocol, use `prepare_ml1m_paper.py` above instead.
 
 ```bash
 python prepare_data.py --source movielens1m --input /path/to/ml-1m --output data/ml1m --min-rating 4
@@ -67,7 +183,7 @@ if ratings refer to ISBNs missing from the supplied metadata. See
 generic CSV support. Raw benchmark data are not redistributed or automatically
 downloaded.
 
-## Supply genuine mapped text features
+## Existing single-target workflow: optional LLM2Vec inputs
 
 Training defaults to external embeddings and requires both a tensor and its
 `.manifest.json` sidecar with ordered raw item IDs and a matching SHA-256.
@@ -111,9 +227,9 @@ All multimodal controls share the encoder, text features, trainable projection,
 item gate, teacher initialization, batch order, negative streams and validation
 selection rule. The teacher is trained and selected once per seed.
 
-## Evaluation and artifacts
+## Existing single-target workflow: evaluation and artifacts
 
-The default candidate policy is `full`: all nonpadding catalog items, with
+For `training.py`, the default candidate policy is `full`: all nonpadding catalog items, with
 target-independent membership. Two explicitly named history-filtered policies
 are available; repeated-target handling is never implicit. Ties prefer smaller
 integer item IDs. One relevant held-out item per user means Hit@K equals
