@@ -25,9 +25,9 @@ from torch.utils.data import DataLoader
 from .data import TrainingDataset
 from .diagnostics import compute_diagnostics
 from .ml1m_model import PaperFAFIRecModel
-from .model import initialize_from_teacher
 from .multitarget_metrics import evaluate_topk, summarize_multitarget_rows
 from .ratio_data import load_ratio_bundle, ratio_evaluation_batch
+from .transfer import initialize_transfer, optimizer_groups
 from .runner import (cpu_state, digest, file_digest, json_dump, model_config,
                      resolve_device, restore_rng, rng_state, runtime_identity,
                      seed_everything, tensor_digest, tensor_state_digest,
@@ -48,6 +48,8 @@ DEFAULTS = {
     "ks": [10, 50], "selection_k": 50,
     "candidate_policy": "exclude_seen", "device": "cpu", "threads": 4,
     "max_users": None, "experiment_note": "",
+    "projection_init": "random", "cf_prior": .5, "ridge": 1.,
+    "gate_lr_multiplier": 1., "include_initial_checkpoint": False,
 }
 ASSUMPTIONS = {
     "split": "per-user timestamp order, stable source-order ties; floor(.8*n), floor(.1*n), remainder",
@@ -85,6 +87,16 @@ def load_config(path, overrides=None):
             raise ValueError(f"{key} must be positive and finite")
     if cfg["optimizer"] != "adam":
         raise ValueError("This paper-protocol entry point requires Adam, not AdamW")
+    if cfg['projection_init'] not in {'random', 'ridge'}:
+        raise ValueError('projection_init must be random or ridge')
+    for key in ('cf_prior', 'ridge', 'gate_lr_multiplier'):
+        if (isinstance(cfg[key], bool) or not isinstance(cfg[key], (int, float))
+                or not math.isfinite(cfg[key]) or cfg[key] <= 0):
+            raise ValueError(f'{key} must be a positive finite number')
+    if cfg['cf_prior'] >= 1:
+        raise ValueError('cf_prior must lie strictly between zero and one')
+    if type(cfg['include_initial_checkpoint']) is not bool:
+        raise ValueError('include_initial_checkpoint must be boolean')
     if (isinstance(cfg["weight_decay"], bool) or not isinstance(cfg["weight_decay"], (int, float))
             or not math.isfinite(cfg["weight_decay"]) or cfg["weight_decay"] < 0):
         raise ValueError("weight_decay must be finite and nonnegative")
@@ -171,7 +183,7 @@ def evaluate(model, records, split, diagnostics, cfg, seed, return_rows=True):
 def fit(model, records, diagnostics, cfg, seed, out, fingerprint, identity, epochs, resume=False, artifact=None):
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
-    optimizer = torch.optim.Adam([parameter for parameter in model.parameters() if parameter.requires_grad],
+    optimizer = torch.optim.Adam(optimizer_groups(model, cfg['lr'], cfg.get('gate_lr_multiplier', 1.)),
                                  lr=cfg["lr"], weight_decay=cfg["weight_decay"])
     best, best_state, best_epoch, stale, logs, first_epoch = -math.inf, None, 0, 0, [], 1
     last_path = out / "last.pt"
@@ -187,6 +199,11 @@ def fit(model, records, diagnostics, cfg, seed, out, fingerprint, identity, epoc
         restore_rng(checkpoint["rng"])
     device = next(model.parameters()).device
     started = time.monotonic()
+    if first_epoch == 1 and cfg.get('include_initial_checkpoint', False):
+        _, initial_validation = evaluate(model, records, 'validation', diagnostics, cfg, seed, False)
+        best = initial_validation['all'][f"ndcg{cfg['selection_k']}"]
+        best_state, best_epoch = cpu_state(model), 0
+        json_dump(out / 'initial_validation.json', initial_validation)
     if stale < cfg["patience"]:
         for epoch in range(first_epoch, epochs + 1):
             data = TrainingDataset(records, model.n_items, cfg["max_len"], seed + epoch)
@@ -295,8 +312,14 @@ def run(cfg, resume=False):
                 "features_sha256": tensor_digest(diagnostics), "teacher_sha256": teacher_hash})
         teacher.requires_grad_(False)
         for control in cfg["controls"]:
+            initialization_config = {
+                'projection_init': cfg.get('projection_init', 'random') if control != 'cf' else 'random',
+                'cf_prior': cfg.get('cf_prior', .5) if control != 'cf' else .5,
+                'ridge': cfg.get('ridge', 1.),
+            }
             artifact = {"seed": seed, "control": control, "stage": "student", "teacher_sha256": teacher_hash,
-                        "diagnostics_tensor_sha256": tensor_digest(diagnostics), "diagnostics_file_sha256": file_digest(diag_path)}
+                        "diagnostics_tensor_sha256": tensor_digest(diagnostics), "diagnostics_file_sha256": file_digest(diag_path),
+                        'initialization_configuration': initialization_config}
             result_path = seed_dir / f"{control}_summary.json"
             checkpoint_path = seed_dir / control / "best.pt"
             csv_path = seed_dir / f"{control}_per_user.csv"
@@ -312,12 +335,15 @@ def run(cfg, resume=False):
                 continue
             seed_everything(seed + 1000)
             model = PaperFAFIRecModel(text_features=features, **model_config(cfg, control, identity["items"])).to(device)
-            initialize_from_teacher(model, teacher)
+            initialization = initialize_transfer(model, teacher, records, **initialization_config)
+            (seed_dir / control).mkdir(exist_ok=True)
+            json_dump(seed_dir / control / 'initialization.json', initialization)
             selected = fit(model, records, diagnostics, cfg, seed + 1000, seed_dir / control,
                            fingerprint, identity, cfg["epochs"], resume, artifact)
             rows, test = evaluate(model, records, "test", diagnostics, cfg, seed)
             write_rows(csv_path, rows)
             result = {"seed": seed, "control": control, "fingerprint": fingerprint, **selected,
+                      'initialization': initialization,
                       "test": test, "per_user_sha256": file_digest(csv_path),
                       "checkpoint_sha256": file_digest(checkpoint_path), "diagnostics_sha256": file_digest(diag_path)}
             json_dump(result_path, result)

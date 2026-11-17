@@ -1,0 +1,15 @@
+{
+  "reference_run_dir": "runs/ml1m_paper_qwen3_v1",
+  "output_dir": "runs/ml1m_transfer_pilot_v1",
+  "seeds": [2025],
+  "epochs": 150,
+  "patience": 10,
+  "device": "cuda",
+  "threads": 4,
+  "variants": [
+    {"name": "prior_only", "control": "diagnostic", "projection_init": "random", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.3, "gate_lr_multiplier": 1.0},
+    {"name": "ridge_prior", "control": "diagnostic", "projection_init": "ridge", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.3, "gate_lr_multiplier": 1.0},
+    {"name": "ridge_light_alignment", "control": "diagnostic", "projection_init": "ridge", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.03, "gate_lr_multiplier": 1.0},
+    {"name": "ridge_fast_gates", "control": "diagnostic", "projection_init": "ridge", "cf_prior": 0.9, "ridge": 1.0, "align_weight": 0.03, "gate_lr_multiplier": 10.0}
+  ]
+}

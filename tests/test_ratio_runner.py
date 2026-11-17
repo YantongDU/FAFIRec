@@ -119,6 +119,27 @@ class RatioRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "checksum"):
             analyze_runs(self.root / "run")
 
+    def test_transfer_flags_reach_generic_training_artifacts_and_reload(self):
+        cfg = {**self.cfg, 'controls': ['cf', 'diagnostic'], 'projection_init': 'ridge',
+               'cf_prior': .9, 'ridge': 1., 'gate_lr_multiplier': 10.,
+               'include_initial_checkpoint': True}
+        with contextlib.redirect_stdout(io.StringIO()):
+            results = run(cfg)
+        directory = self.root / 'run/seed_17'
+        checkpoint = torch.load(directory / 'diagnostic/best.pt', weights_only=True)
+        self.assertEqual(checkpoint['artifact']['initialization_configuration'],
+                         {'projection_init': 'ridge', 'cf_prior': .9, 'ridge': 1.})
+        self.assertTrue((directory / 'diagnostic/initial_validation.json').exists())
+        optimizer = torch.load(directory / 'diagnostic/last.pt', weights_only=True)['optimizer']
+        self.assertEqual([group['lr'] for group in optimizer['param_groups']], [.001, .01])
+        cf = torch.load(directory / 'cf/best.pt', weights_only=True)
+        self.assertEqual(cf['artifact']['initialization_configuration']['projection_init'], 'random')
+        model, records, diag, restored_cfg, _ = load_selected(self.root / 'run', 17, 'diagnostic', 'cpu')
+        _, metrics = evaluate(model, records, 'test', diag, restored_cfg, 17)
+        self.assertEqual(metrics, results[-1]['test'])
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(run(cfg, True), results)
+
 
 if __name__ == "__main__":
     unittest.main()
