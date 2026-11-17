@@ -1,0 +1,36 @@
+{
+  "data_dir": "data/ml1m_paper_ratio",
+  "embedding_path": "data/ml1m_qwen3_06b.pt",
+  "feature_mode": "embeddings",
+  "output_dir": "runs/ml1m_gpu_batch_preflight",
+  "seeds": [
+    2025
+  ],
+  "controls": [
+    "cf",
+    "uniform",
+    "diagnostic"
+  ],
+  "epochs": 2,
+  "teacher_epochs": 1,
+  "patience": 2,
+  "batch_size": 2048,
+  "eval_batch": 128,
+  "max_len": 50,
+  "d_model": 64,
+  "n_heads": 2,
+  "n_layers": 1,
+  "dropout": 0.1,
+  "optimizer": "adam",
+  "selection_k": 50,
+  "ks": [
+    10,
+    50
+  ],
+  "candidate_policy": "exclude_seen",
+  "device": "cuda",
+  "max_users": null,
+  "experiment_note": "Full5950-user GPU preflight preserving paper B2048/d64 and realLLMfeatures, but1teacher/2studentepochs and1seed; execution verification only.",
+  "align_weight": 0.3,
+  "weight_decay": 1e-05
+}
