@@ -3,7 +3,7 @@
   "embedding_path": "data/ml1m_qwen3_06b.pt",
   "feature_mode": "embeddings",
   "lexical_dim": 128,
-  "output_dir": "runs/ml1m_stable_transfer_v1",
+  "output_dir": "runs/ml1m_stable_transfer_v2",
   "seeds": [
     2025,
     2026,
@@ -27,7 +27,7 @@
   "n_heads": 2,
   "n_layers": 1,
   "dropout": 0.1,
-  "lr": 0.001,
+  "lr": 0.0003,
   "weight_decay": 1e-05,
   "optimizer": "adam",
   "grad_clip": 5.0,
@@ -48,10 +48,12 @@
   "device": "cuda",
   "threads": 4,
   "max_users": null,
-  "experiment_note": "Transfer configuration chosen by predeclared seed2025 validation NDCG50 pilot, before this run. Same chronological data, features, candidates and metrics; all controls share a validation-selected teacher with 150-epoch maximum, CF-biased gate initialization and training-only ridge projection for multimodal controls. Epoch0 is eligible. Prior test results were previously inspected; this is a transparent follow-up benchmark, not an untouched confirmatory test.",
+  "experiment_note": "Locked after predeclared validation-only initialization and strong-teacher adaptation pilots (seed2025); same data/features/candidates/metrics. Teacher uses Adam lr0.001 and validation early stopping, max150; all CF/uniform/diagnostic students share its initialization and matched selected student lr, max150 and min adaptation window. Epoch0 remains eligible. Original test results were previously known; this is a transparent follow-up benchmark, not an untouched confirmatory test. Do not use new test results to change this locked configuration.",
+  "teacher_lr": 0.001,
   "projection_init": "ridge",
   "cf_prior": 0.9,
   "ridge": 1.0,
   "gate_lr_multiplier": 1.0,
-  "include_initial_checkpoint": true
+  "include_initial_checkpoint": true,
+  "min_epochs": 30
 }
