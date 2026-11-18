@@ -1,0 +1,28 @@
+{
+  "reference_main_run": "../FAFIRec_Improve_v2/runs/ml1m_stable_transfer_v2",
+  "anchor_run": "../FAFIRec_Improve_v2/runs/cf_lr_validation_v2",
+  "output_dir": "runs/literature_final_replicas",
+  "seeds": [2025, 2026, 2027, 2028, 2029],
+  "variants": [
+    {"name": "id_ce", "kind": "id", "objective": "ce", "score_scale": 16.0},
+    {"name": "text_ce", "kind": "text", "objective": "ce", "score_scale": 16.0},
+    {"name": "shuffled_ce", "kind": "shuffled", "objective": "ce", "score_scale": 16.0}
+  ],
+  "epochs": 300,
+  "min_epochs": 30,
+  "patience": 3,
+  "eval_interval": 5,
+  "batch_size": 2048,
+  "eval_batch": 128,
+  "alpha_grid": [0, 0.5, 1, 2, 4],
+  "routes": ["global"],
+  "ce_chunk_size": 1024,
+  "ridge": 1.0,
+  "device": "cuda",
+  "threads": 4,
+  "train_router": true,
+  "router_epochs": 30,
+  "router_min_epochs": 10,
+  "router_lr": 0.01,
+  "experiment_note": "Common recipe selected by seed2025 six-candidate validation pilot: text CE scale16 without identity alignment. Its best checkpoint was at the 150-epoch cap, so all final controls receive one common 300-epoch maximum with the unchanged validation early-stop rule. Three expert types and both stages are predeclared for all five seeds. Historical tests were already known; transparent iterative benchmark, not untouched confirmation."
+}
