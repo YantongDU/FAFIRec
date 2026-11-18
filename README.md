@@ -29,6 +29,8 @@ previous main/CF-search run directories, including their data and feature
 manifests. These private artifacts are not bundled; preserve them with the run.
 The previously observed test split is an iterative benchmark, not an untouched
 confirmation set. No performance claim follows from code or smoke tests alone.
+See [运行与核验步骤](docs/RESEARCH_RUNNING_zh.md) for the isolated five-seed
+workflow, prerequisite artifacts and common validation selection.
 
 ## MovieLens-1M: chronological 80/10/10, multiple held-out positives
 
