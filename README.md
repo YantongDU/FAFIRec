@@ -11,6 +11,37 @@ historical paper tables**. No benchmark performance claim follows from the
 included smoke configuration. See [method correspondence](docs/METHOD_IMPLEMENTATION.md)
 and [中文运行说明](docs/RUNNING_zh.md).
 
+## Literature-guided independent residual experiments
+
+The new, separate `research_ml1m.py` workflow freezes the validation-selected
+strong CF model, adds an independent ID/text expert, and combines their scores.
+It supports a zero-residual fallback, training-seen centered text adaptation,
+optional same-ID contrastive alignment, masked full-catalog CE, and a second,
+frozen-expert relative router. It is an experimental redesign, not a faithful
+reproduction of PAD, LLM-ESR, RLMRec or IISAN. See
+[verified sources and design (中文)](docs/LITERATURE_GUIDED_DESIGN_zh.md).
+
+`configs/ml1m_research_pilot.json` declares six validation-only candidates.
+`evaluate_research.py` separately replays a chosen checkpoint on validation/test;
+`analyze_research.py` checks artifact identities and independently recomputes
+metrics from the complete saved rankings. The local pilot references the frozen
+previous main/CF-search run directories, including their data and feature
+manifests. These private artifacts are not bundled; preserve them with the run.
+The previously observed test split is an iterative benchmark, not an untouched
+confirmation set. No performance claim follows from code or smoke tests alone.
+See [运行与核验步骤](docs/RESEARCH_RUNNING_zh.md) for the isolated five-seed
+workflow, prerequisite artifacts and common validation selection.
+
+The [completed literature-guided results (中文)](docs/ML1M_RESEARCH_RESULTS_zh.md)
+include all controls, an additional single-branch CF-CE baseline, seed uncertainty
+and negative findings. The validation-selected text/relative model reached
+test Recall@10/NDCG@10 of 0.162811/0.161769, compared with 0.135447/0.135793
+for the previous strong CF and 0.161237/0.159959 for single-branch CF-CE.
+Most of the improvement comes from the classification training recipe;
+the router adds little, and some cold-user NDCG metrics remain below CF-CE.
+All 35 new selected checkpoints passed independent ranking replays and audits.
+An [Overleaf-ready table](docs/ML1M_RESEARCH_TABLE.tex) preserves every control.
+
 ## MovieLens-1M: chronological 80/10/10, multiple held-out positives
 
 **Use this workflow for the current ML-1M experiment.** Read the complete

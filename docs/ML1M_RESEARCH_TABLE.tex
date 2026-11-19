@@ -1,0 +1,46 @@
+% Generated only from audited combined_validation.json / combined_test.json.
+% Requires booktabs. Values are mean +/- sample SD across five seeds.
+% User groups are stacked to avoid shrinking thirteen wide mean/SD columns.
+\begin{table*}[t]
+\centering
+\caption{ML-1M results (mean $\pm$ sample standard deviation over five training seeds). $\dagger$ marks the model chosen by common mean validation NDCG@50. Cold/warm refer to user training-history groups, not item frequency.}
+\label{tab:ml1m_research_v3}
+\begin{tabular}{lcccc}
+\toprule
+Model & R@10 & N@10 & R@50 & N@50 \\
+\midrule
+\multicolumn{5}{c}{Overall} \\
+\midrule
+Strong CF anchor & $0.135447 \pm 0.001523$ & $0.135793 \pm 0.001235$ & $0.361427 \pm 0.002166$ & $0.212897 \pm 0.001741$ \\
+ID / global & $0.160434 \pm 0.000617$ & $0.160260 \pm 0.000496$ & $0.389616 \pm 0.001512$ & $0.238264 \pm 0.001002$ \\
+ID / relative & $0.160434 \pm 0.000617$ & $0.160260 \pm 0.000496$ & $0.389616 \pm 0.001512$ & $0.238264 \pm 0.001002$ \\
+Text / global & $0.162530 \pm 0.002973$ & $0.161518 \pm 0.002446$ & $0.396259 \pm 0.004424$ & $0.241367 \pm 0.002725$ \\
+\textbf{Text / relative}$^{\dagger}$ & $0.162811 \pm 0.002932$ & $0.161769 \pm 0.002416$ & $0.396403 \pm 0.004731$ & $0.241545 \pm 0.002847$ \\
+Shuffled text / global & $0.158417 \pm 0.001192$ & $0.158483 \pm 0.001521$ & $0.385030 \pm 0.002014$ & $0.235570 \pm 0.001333$ \\
+Shuffled text / relative & $0.158450 \pm 0.001392$ & $0.158755 \pm 0.001672$ & $0.384910 \pm 0.001720$ & $0.235800 \pm 0.001276$ \\
+Single-branch CF-CE (local) & $0.161237 \pm 0.000852$ & $0.159959 \pm 0.000952$ & $0.389201 \pm 0.002343$ & $0.237833 \pm 0.000847$ \\
+\midrule
+\multicolumn{5}{c}{Cold users} \\
+\midrule
+Strong CF anchor & $0.236639 \pm 0.009635$ & $0.156653 \pm 0.005819$ & $0.525994 \pm 0.009531$ & $0.238503 \pm 0.004073$ \\
+ID / global & $0.289356 \pm 0.003056$ & $0.200577 \pm 0.002190$ & $0.567339 \pm 0.001503$ & $0.279721 \pm 0.002383$ \\
+ID / relative & $0.289356 \pm 0.003056$ & $0.200577 \pm 0.002190$ & $0.567339 \pm 0.001503$ & $0.279721 \pm 0.002383$ \\
+Text / global & $0.294510 \pm 0.003535$ & $0.201353 \pm 0.002827$ & $0.571036 \pm 0.008603$ & $0.280380 \pm 0.004471$ \\
+\textbf{Text / relative}$^{\dagger}$ & $0.294958 \pm 0.003576$ & $0.201479 \pm 0.002745$ & $0.572045 \pm 0.008578$ & $0.280625 \pm 0.004030$ \\
+Shuffled text / global & $0.278487 \pm 0.006199$ & $0.192375 \pm 0.003437$ & $0.559496 \pm 0.007010$ & $0.272161 \pm 0.003066$ \\
+Shuffled text / relative & $0.279720 \pm 0.004748$ & $0.193079 \pm 0.003139$ & $0.558992 \pm 0.006754$ & $0.272417 \pm 0.003039$ \\
+Single-branch CF-CE (local) & $0.291653 \pm 0.004204$ & $0.204012 \pm 0.004055$ & $0.571148 \pm 0.001692$ & $0.283191 \pm 0.003095$ \\
+\midrule
+\multicolumn{5}{c}{Warm users} \\
+\midrule
+Strong CF anchor & $0.045286 \pm 0.001025$ & $0.159020 \pm 0.002998$ & $0.160210 \pm 0.003009$ & $0.157383 \pm 0.001954$ \\
+ID / global & $0.046650 \pm 0.000437$ & $0.164146 \pm 0.002000$ & $0.159506 \pm 0.003031$ & $0.158465 \pm 0.002088$ \\
+ID / relative & $0.046650 \pm 0.000437$ & $0.164146 \pm 0.002000$ & $0.159506 \pm 0.003031$ & $0.158465 \pm 0.002088$ \\
+Text / global & $0.047625 \pm 0.000843$ & $0.168356 \pm 0.002149$ & $0.164570 \pm 0.000510$ & $0.163677 \pm 0.000518$ \\
+\textbf{Text / relative}$^{\dagger}$ & $0.047696 \pm 0.000710$ & $0.168293 \pm 0.001597$ & $0.163959 \pm 0.001119$ & $0.163238 \pm 0.000779$ \\
+Shuffled text / global & $0.046668 \pm 0.000814$ & $0.166017 \pm 0.002612$ & $0.163551 \pm 0.003664$ & $0.162185 \pm 0.002457$ \\
+Shuffled text / relative & $0.046917 \pm 0.000891$ & $0.166559 \pm 0.002857$ & $0.163407 \pm 0.003770$ & $0.162079 \pm 0.002513$ \\
+Single-branch CF-CE (local) & $0.044236 \pm 0.000719$ & $0.153987 \pm 0.002601$ & $0.153535 \pm 0.001841$ & $0.151357 \pm 0.000467$ \\
+\bottomrule
+\end{tabular}
+\end{table*}
