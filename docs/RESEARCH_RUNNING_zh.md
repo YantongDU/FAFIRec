@@ -48,3 +48,17 @@ python tools/run_research_replicas.py --config configs/ml1m_research_selected.js
 五个seed共同选择一个variant/stage，以五seed平均验证NDCG@50为依据；不能给每seed挑不同stage后拼成一行成绩。`tools/combine_research_replicas.py`负责跨run检查和共同锁定。测试应在全部验证核验和共同锁定后显式执行；`replay_research_grid.py --split test --repeat`重新加载两次，并要求排名与指标相同。`compare_research.py --split test --test-dir ...`重新检查目标、历史排除、物品范围、完整用户覆盖及所有指标，随后进行共同五seed统计。
 
 ID分支是强继续训练/集成对照，并非参数量与初始分数严格匹配。真实/打乱文本采用同参数化与训练过程，检验语义和物品身份的对应关系。router比global多一阶段训练，还增加逐用户幅度自由度；其差值代表整套额外阶段的效果，不能单独证明某一个特征的因果贡献。原test已在历史开发中被观察，本轮需如实称为迭代benchmark。
+
+## 单分支 CF-CE 强对照
+
+`tools/single_ce_baseline.py` 另行复制同一个强 CF checkpoint，只训练有效的 CF 参数，使用尺度16的 masked catalog CE。它不包含残差、辅助专家损失或router，也不称作官方 SASRec 的完整复现。学习率、Adam、L2、批量、精度、最大/最少轮次、验证间隔和早停规则与新实验一致。该对照用于判断分类训练配方的作用，不能把单分支和残差配方的所有差异孤立归因于融合结构。
+
+```powershell
+foreach ($seed in 2025..2029) {
+  python tools/single_ce_baseline.py train --master-config configs/ml1m_research_selected.json --seed $seed --output-dir "runs/single_cf_ce_final/seed_$seed"
+}
+python tools/single_ce_baseline.py lock --master-config configs/ml1m_research_selected.json --replica-root runs/single_cf_ce_final --output runs/single_cf_ce_final/selection_lock.json
+python tools/single_ce_baseline.py aggregate --replica-root runs/single_cf_ce_final --split validation --selection-lock runs/single_cf_ce_final/selection_lock.json --output runs/single_cf_ce_final/combined_validation.json
+```
+
+锁定五seed的验证最佳epoch后，逐seed运行 `replay --split validation`，要求CSV与训练导出完全一致；测试需显式 `--selection-lock`。测试独立重载两次，分别写入 `replay_test/seed_N` 和 `replay_test_reloaded/seed_N`，验证两个CSV哈希和指标相等。最终 `aggregate --split test --replay-root runs/single_cf_ce_final/replay_test ...` 会再次从保存的逐用户排名重算指标，不读取日志中的测试数值。配置、源码（含该工具自身）、输入、原锚点或任何被锁定产物变动都会拒绝重载。单CF-CE具有独立验证选择锁，并不改写原七行方法网格的共同选择。
