@@ -32,6 +32,16 @@ confirmation set. No performance claim follows from code or smoke tests alone.
 See [运行与核验步骤](docs/RESEARCH_RUNNING_zh.md) for the isolated five-seed
 workflow, prerequisite artifacts and common validation selection.
 
+The [completed literature-guided results (中文)](docs/ML1M_RESEARCH_RESULTS_zh.md)
+include all controls, an additional single-branch CF-CE baseline, seed uncertainty
+and negative findings. The validation-selected text/relative model reached
+test Recall@10/NDCG@10 of 0.162811/0.161769, compared with 0.135447/0.135793
+for the previous strong CF and 0.161237/0.159959 for single-branch CF-CE.
+Most of the improvement comes from the classification training recipe;
+the router adds little, and some cold-user NDCG metrics remain below CF-CE.
+All 35 new selected checkpoints passed independent ranking replays and audits.
+An [Overleaf-ready table](docs/ML1M_RESEARCH_TABLE.tex) preserves every control.
+
 ## MovieLens-1M: chronological 80/10/10, multiple held-out positives
 
 **Use this workflow for the current ML-1M experiment.** Read the complete

@@ -401,6 +401,15 @@ def render_markdown(context):
         n10 = get(selected, 'ndcg10')['mean'] - get(SINGLE, 'ndcg10')['mean']
         n50 = get(selected, 'ndcg50')['mean'] - get(SINGLE, 'ndcg50')['mean']
         lines += [f'相对附加单分支 CF-CE，本方法的测试 N@10/N@50 点估计差为 **{fmt(n10, True)}/{fmt(n50, True)}**。原七行共同锁只决定原方法候选中的选择，不能当作包含这一新增基线后的总体最优证明。', '']
+        single_gain = get(SINGLE, 'ndcg50')['mean'] - get(ANCHOR, 'ndcg50')['mean']
+        if single_gain > n50 > 0:
+            lines += [f'单分支分类配方相对旧强 CF 的 N@50 已提高 {fmt(single_gain, True)}，完整模型进一步增加 {fmt(n50, True)}；本轮大部分点估计提升可由单分支分类配方获得，不能将其全部归因新增结构。该比较同时包含训练目标、训练过程与结构变化，不是因果贡献分解。', '']
+        cold_lower = [m for m in ('ndcg10', 'ndcg50') if get(selected, m, group='cold')['mean'] < get(SINGLE, m, group='cold')['mean']]
+        if cold_lower:
+            lines += ['冷用户的 ' + '/'.join('N@' + m[4:] for m in cold_lower) + ' 仍低于单分支 CF-CE，不能宣称所有用户组全面领先。', '']
+    if selected[1] == 'router':
+        gate_delta = get(selected, 'ndcg50')['mean'] - get((selected[0], 'expert'), 'ndcg50')['mean']
+        lines += [f'相对同一冻结专家的 global 阶段，所选 relative 阶段测试 N@50 仅变化 {fmt(gate_delta, True)}；门控的额外训练与自适应幅度应独立评价，不能当作整体提升的主要来源。', '']
     if selected_kind != 'text':
         lines += [f'获选分支使用{KIND_LABEL[selected_kind]}，因此不能把本轮整体结果写成真实文本模型获胜。文本是否有增量，应看下方真实文本与 ID、打乱文本的对照。', '']
     else:
@@ -465,7 +474,7 @@ def render_markdown(context):
         baseline_lines = ['## 附加单分支 CF-CE 对照', '',
             f'单分支 CF-CE 的平均验证 N@50 为 {fmt(anchor_val)}，原七行验证所选模型为 {fmt(method_val)}，后者减前者为 {fmt(method_val - anchor_val, True)}。单分支基线有自己覆盖五种子的验证 epoch 锁；它没有被悄悄并入原七行选择，更没有根据测试重选原方法。', '',
             '该对照保持本地 CF 编码器、起始强 CF、分类尺度16、full-train 掩码池及共同优化/早停预算，只继续训练单分支。它不含独立分支、冻结 CF 分数残差或专家辅助损失，因此与残差模型的差值仍是整套配方比较，不是严格融合单因素实验；也不是官方 SASRec/RecBole CE 的完整复现。', '',
-            f"以下附加比较固定为原七行共同验证所选模型减单分支 CF-CE；全部4用户组×4指标，共16项，不按测试结果挑选。差值CI枚举全部 5^5＝3125 种有序 seed-bootstrap 重采样，分位数作线性插值；exact p 仍枚举32种符号。这里 Holm 按附加16项与原{len(reports['test']['paired_comparisons'])}项组成的合并族校正；上表核心比较保留其原审计族的 Holm。两类 CI 均仅描述固定用户条件下的 seed 不确定性。", '',
+            f"附加比较固定为原七行共同验证所选模型减单分支 CF-CE；统计族含4用户组×4指标，共16项，下表展示 all/cold/warm 三组的12项，其余 middle 组仍计入校正，不按测试结果挑选。差值CI枚举全部 5^5＝3125 种有序 seed-bootstrap 重采样，分位数作线性插值；exact p 仍枚举32种符号。这里 Holm 按附加16项与原{len(reports['test']['paired_comparisons'])}项组成的合并族校正；上表核心比较保留其原审计族的 Holm。两类 CI 均仅描述固定用户条件下的 seed 不确定性。", '',
             single_comparison_table(context), '']
         insertion = lines.index('## 校准、参数与训练预算')
         lines[insertion:insertion] = baseline_lines

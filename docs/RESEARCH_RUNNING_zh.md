@@ -57,8 +57,15 @@ ID分支是强继续训练/集成对照，并非参数量与初始分数严格�
 foreach ($seed in 2025..2029) {
   python tools/single_ce_baseline.py train --master-config configs/ml1m_research_selected.json --seed $seed --output-dir "runs/single_cf_ce_final/seed_$seed"
 }
-python tools/single_ce_baseline.py lock --master-config configs/ml1m_research_selected.json --replica-root runs/single_cf_ce_final --output runs/single_cf_ce_final/selection_lock.json
-python tools/single_ce_baseline.py aggregate --replica-root runs/single_cf_ce_final --split validation --selection-lock runs/single_cf_ce_final/selection_lock.json --output runs/single_cf_ce_final/combined_validation.json
 ```
 
-锁定五seed的验证最佳epoch后，逐seed运行 `replay --split validation`，要求CSV与训练导出完全一致；测试需显式 `--selection-lock`。测试独立重载两次，分别写入 `replay_test/seed_N` 和 `replay_test_reloaded/seed_N`，验证两个CSV哈希和指标相等。最终 `aggregate --split test --replay-root runs/single_cf_ce_final/replay_test ...` 会再次从保存的逐用户排名重算指标，不读取日志中的测试数值。配置、源码（含该工具自身）、输入、原锚点或任何被锁定产物变动都会拒绝重载。单CF-CE具有独立验证选择锁，并不改写原七行方法网格的共同选择。
+训练完成后，使用下列网格入口锁定五seed的验证最佳epoch，独立重载全部验证排名，再运行两次测试重载。两个CSV哈希和指标均须相等。聚合阶段会再次从保存的逐用户排名重算指标，不读取日志中的测试数值。配置、源码（含训练工具自身）、输入、原锚点或任何被锁定产物变动都会拒绝重载。单CF-CE具有独立验证选择锁，并不改写原七行方法网格的共同选择。
+
+完整网格可直接通过 `tools/replay_single_ce_grid.py` 完成。该入口在每次重载前恢复训练使用的确定性设置，并记录实际数值后端状态；不会更改已训练的模型或epoch选择。
+
+```powershell
+python tools/replay_single_ce_grid.py --master-config configs/ml1m_research_selected.json --replica-root runs/single_cf_ce_final --split validation --selection-lock runs/single_cf_ce_final/selection_lock.json
+python tools/replay_single_ce_grid.py --master-config configs/ml1m_research_selected.json --replica-root runs/single_cf_ce_final --split test --selection-lock runs/single_cf_ce_final/selection_lock.json
+```
+
+上述网格入口的 validation 阶段会新建选择锁，故每个输出目录只执行一次。独立数学重算在真实数据上可能产生约1e-15的浮点累加差，入口采用与核心审计相同的数值公差，记录实际最大差异；模型、数据、checkpoint和排名CSV的hash仍要求完全相同。冻结训练工具保留原始版本，结果核验使用此网格入口。
