@@ -42,6 +42,27 @@ the router adds little, and some cold-user NDCG metrics remain below CF-CE.
 All 35 new selected checkpoints passed independent ranking replays and audits.
 An [Overleaf-ready table](docs/ML1M_RESEARCH_TABLE.tex) preserves every control.
 
+## ACE-SASRec (SIGIR 2026) external baseline
+
+The separate `baselines/ace2026_model.py` implementation preserves ACE's
+uncentered spectral initialization, global scaling, trainable item table and
+raw-dot SASRec objective. `tools/ace2026_experiment.py` reuses the frozen ML-1M
+inputs and evaluation; its parameters are initialized independently of CF weights.
+Validation-only tuning, five isolated seeds and independent ranking replay are
+described in the [running guide (中文)](docs/ACE2026_RUNNING_zh.md).
+Architecture, loss and tuning-budget differences are explicit in the
+[method correspondence](docs/ACE2026_BASELINE_zh.md). The
+[paper-reported baseline reference](docs/ACE_PAPER_BASELINE_REFERENCE_zh.md)
+keeps the original ML-20M and other datasets separate from local ML-1M results.
+
+The [completed five-seed comparison (中文)](docs/ACE2026_RESULTS_zh.md) reports
+ACE Recall@10/NDCG@10/NDCG@50 of 0.169937/0.169444/0.252323, versus
+0.162811/0.161769/0.241545 for the validation-selected FAFIRec text residual.
+ACE has higher means in this experiment. See the
+[machine-readable seed results](docs/ACE2026_RESULTS.json) and
+[Overleaf table](docs/ACE2026_TABLE.tex) with its
+[bibliography entry](docs/ACE2026_REFERENCE.bib).
+
 ## MovieLens-1M: chronological 80/10/10, multiple held-out positives
 
 **Use this workflow for the current ML-1M experiment.** Read the complete
