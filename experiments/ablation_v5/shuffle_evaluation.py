@@ -1,5 +1,6 @@
 """Partial text-identity intervention with every other V4 component frozen."""
 import argparse
+import csv
 import os
 import statistics
 import subprocess
@@ -13,12 +14,14 @@ os.environ.setdefault('CUBLAS_WORKSPACE_CONFIG', ':4096:8')
 import torch
 from analyze_transfer import _same
 from fafirec.runner import digest, file_digest, json_dump
+from fafirec.ratio_runner import evaluate, write_rows
 from tools import ace2026_experiment as ace
 from experiments.diagnostic_v4 import final_runs as fr
 from experiments.ablation_v5 import experiment as ex, shuffled_backbone as sb
 from experiments.diagnostic_v4.fusion_model import score_histories
 
-PROTOCOL = 'fafirec_v5_shuffled_identity_evaluation_v1'
+PROTOCOL = 'fafirec_v5_shuffled_identity_evaluation_v2'
+OUTPUT_NAME = 'shuffled_identity_native_v2'
 VARIANTS = ('shuffled_backbone_only', 'shuffled_backbone_frozen_fusion')
 
 
@@ -66,10 +69,27 @@ def worker(root, shuffle_root, seed, split, out):
     gate, _ = ex.load_gate(ex.model_path(root, seed, 'full'), 'full', plan, seed)
     out.mkdir(parents=True)
     for name in VARIANTS:
-        scores = sem.numpy() if name == VARIANTS[0] else fr.fusion.predict(gate, data, .025, 0.)
-        metrics = fr.write_scored(out / name, scores, records, cfg, seed, name, split, 'per_user.csv')
-        if split == 'validation' and name == VARIANTS[0]:
-            _same(metrics, summary['validation'], 'Normalized shuffled backbone validation')
+        if name == VARIANTS[0]:
+            # Use exactly the native baseline scorer. Float32 normalization
+            # can collapse near-ties relative to the original raw logits.
+            rows, metrics = evaluate(model, records, split, torch.zeros(len(records), 2), cfg, seed)
+            if split == 'validation':
+                _same(metrics, summary['validation'], 'Native shuffled backbone validation')
+                with (shuffle_root / f'seed_{seed}/validation.csv').open(encoding='utf-8', newline='') as stream:
+                    original = list(csv.DictReader(stream))
+                ace.require(len(rows) == len(original) and all(str(a['user']) == b['user']
+                    and a['top_items'] == b['top_items'] for a, b in zip(rows, original)),
+                    'Native shuffled validation rankings differ')
+            for row in rows:
+                row.update(control='fafirec_v4_diagnostic', variant=name, stage='fusion')
+            (out / name).mkdir()
+            write_rows(out / name / 'per_user.csv', rows)
+            checked = ex.audit_rows(out / name / 'per_user.csv', records, cfg, seed, name,
+                'fusion', 'fafirec_v4_diagnostic', split, sm['identity']['items'])
+            _same(checked, metrics, 'Native shuffled backbone ranking audit')
+        else:
+            scores = fr.fusion.predict(gate, data, .025, 0.)
+            metrics = fr.write_scored(out / name, scores, records, cfg, seed, name, split, 'per_user.csv')
         json_dump(out / name / 'metrics.json', {'protocol': PROTOCOL, 'seed': seed, 'variant': name,
             'split': split, 'metrics': metrics, 'candidate_policy': cfg['candidate_policy'],
             'per_user_sha256': file_digest(out / name / 'per_user.csv'), 'source_hashes': sources(),
@@ -77,6 +97,8 @@ def worker(root, shuffle_root, seed, split, out):
             'shuffle_lock_sha256': file_digest(shuffle_root / 'five_seed_selection_lock.json'),
             'shuffled_checkpoint_sha256': summary['checkpoint_sha256'],
             'original_gate_sha256': file_digest(ex.model_path(root, seed, 'full')),
+            'score_policy': 'native_raw_logits' if name == VARIANTS[0] else 'original_normalized_fusion',
+            'native_validation_rankings_identical': split == 'validation' and name == VARIANTS[0],
             'partial_ablation': True, 'diagnostic_proxy_and_other_branches_unchanged': True})
 
 
@@ -127,10 +149,11 @@ def ensure(out, root, shuffle_root, seed, split, label):
 def run(root, shuffle_root):
     root, shuffle_root = Path(root).resolve(), Path(shuffle_root).resolve()
     sl = locks(root, shuffle_root)
-    out = root / 'shuffled_identity'; out.mkdir(exist_ok=True)
+    out = root / OUTPUT_NAME; out.mkdir(exist_ok=True)
     plan = {'protocol': PROTOCOL, 'seed_ids': ex.SEEDS, 'variants': list(VARIANTS), 'source_hashes': sources(),
         'ablation_lock_sha256': file_digest(root / 'ablation_lock.json'),
         'shuffle_lock_sha256': file_digest(shuffle_root / 'five_seed_selection_lock.json'),
+        'score_policies': {VARIANTS[0]: 'native_raw_logits', VARIANTS[1]: 'original_normalized_fusion'},
         'partial_ablation': True, 'other_components_frozen': True, 'no_hyperparameter_selection': True}
     plan['fingerprint'] = digest(plan); ex.immutable(out / 'plan.json', plan)
     values = {'validation': {}, 'test': {}}

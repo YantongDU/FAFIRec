@@ -50,3 +50,18 @@
 训练完成后锁定全部五种子的消融权重及来源文件，再评分测试。完整模型复现先检验旧参数和训练日志逐位相同；验证/测试排名重载及CSV指标独立重算。测试使用两个独立重载过程。
 
 主关注比较预先固定为full减gain_only的整体NDCG@50。8个重训消融和4个敏感性实验的整体NDCG@50共12项统一Holm校正。其它分组和指标提供五种子均值、样本标准差、配对差、描述性seed-bootstrap区间及胜负数，不逐表挑选显著结果。五种子双侧精确符号翻转检验最小非零p为0.0625；不添加显著性星号。若差值很小、区间跨0或去掉模块反而更好，应明确报告，不强行为每个设计寻找正面解释。
+
+## 复跑入口与产物
+
+先按V4运行说明保留五种子组件、缓存、验证锁、输入数据及实际文本嵌入。本轮会验证这些输入的指纹；公开仓库没有捆绑私有运行产物，不能只复制下列命令而缺少前置输入。使用原ML-1M环境，设置`CUBLAS_WORKSPACE_CONFIG=:4096:8`。原组件目录默认沿用V4运行的本地路径，异机需要提供相应的原始产物和路径配置。
+
+```bash
+python experiments/ablation_v5/experiment.py --baseline-root /path/to/diagnostic_v4_final --output-root runs/ablation_v5 --parallel 1
+python experiments/ablation_v5/shuffled_backbone.py train --output-dir runs/ablation_v5_shuffled_backbone
+python experiments/ablation_v5/shuffle_evaluation.py --root runs/ablation_v5 --shuffle-root runs/ablation_v5_shuffled_backbone
+python experiments/ablation_v5/report.py --run-root runs/ablation_v5 --shuffle-root runs/ablation_v5_shuffled_backbone --export-dir /path/to/new-report-dir --local-report /path/to/ablation-report.md
+```
+
+前两个训练入口可以在显存充足时各运行一个进程；后续对应关系评分须等待两套完整五种子锁。训练重启使用各入口的`--resume`，只接受原配置、原源文件及原输入。评分入口会核对已有结果并继续未完成部分。报告导出要求新目标文件，防止覆盖已审阅的结果；克隆已含结果的仓库后，请显式提供新的`--export-dir`和`--local-report`。
+
+`runs/ablation_v5/combined_validation.json`、`combined_test.json`与两套verification记录保留全部重训/敏感性结果；`shuffled_identity_native_v2/`保留文本身份干预。单骨干行沿用其原生原始打分，融合行沿用旧融合标准化打分，以保留各自既定数值路径；第一版中发现的极近分数舍入差异及未完成输出保留供追溯。逐用户CSV、重载结果、模型与输入指纹留在本地运行目录。公开导出包括中文分析、五种子JSON和可插入Overleaf的LaTeX表格，分别在`docs/ABLATION_V5_RESULTS_zh.md`、`docs/ABLATION_V5_RESULTS.json`及`docs/ABLATION_V5_TABLE.tex`。
