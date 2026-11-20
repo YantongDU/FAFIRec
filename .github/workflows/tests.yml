@@ -5,6 +5,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: DCheol/ACE
+          ref: 3e099052d9759b841a5192a2ae20a3b3ac02c6c6
+          path: data/ACE_reference
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
