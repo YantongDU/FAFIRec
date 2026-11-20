@@ -1,0 +1,21 @@
+\begin{table*}[t]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{ML-1M test results under the shared chronological, multi-positive full-catalog protocol. Mean $\pm$ sample standard deviation over five seeds. The model recipe is selected by common validation NDCG@50; architectures and training budgets differ.}
+\label{tab:fafirec-v4-ace}
+\begin{tabular}{lcccc}
+\hline
+Model & Recall@10 & NDCG@10 & Recall@50 & NDCG@50 \\
+\hline
+ACE (original) & $0.169937 \pm 0.000925$ & $0.169444 \pm 0.000475$ & $0.412928 \pm 0.001877$ & $0.252323 \pm 0.000630$ \\
+ACE (all windows) & $0.175763 \pm 0.001086$ & $0.174971 \pm 0.000883$ & $0.423403 \pm 0.001595$ & $0.259238 \pm 0.001094$ \\
+ACE + popularity & $0.180829 \pm 0.001644$ & $0.182036 \pm 0.001194$ & $0.431168 \pm 0.002403$ & $0.267018 \pm 0.001737$ \\
+Global fusion & $0.183879 \pm 0.001582$ & $0.185142 \pm 0.001099$ & $0.434519 \pm 0.002066$ & $0.269975 \pm 0.001386$ \\
+Diagnostic fusion (selected) & $0.186001 \pm 0.001465$ & $0.186207 \pm 0.001035$ & $0.436745 \pm 0.002019$ & $0.270897 \pm 0.001392$ \\
+Uniform alignment & $0.184179 \pm 0.001771$ & $0.185275 \pm 0.001059$ & $0.434662 \pm 0.001978$ & $0.270064 \pm 0.001255$ \\
+Diagnostic (matched) & $0.183655 \pm 0.001098$ & $0.184437 \pm 0.000703$ & $0.434525 \pm 0.001804$ & $0.269272 \pm 0.000975$ \\
+Diagnostic + alignment & $0.183693 \pm 0.001099$ & $0.184463 \pm 0.000696$ & $0.434590 \pm 0.001838$ & $0.269305 \pm 0.000973$ \\
+Fixed-scale fusion & $0.185982 \pm 0.001503$ & $0.186202 \pm 0.001059$ & $0.436730 \pm 0.001994$ & $0.270893 \pm 0.001395$ \\
+\hline
+\end{tabular}
+\end{table*}
