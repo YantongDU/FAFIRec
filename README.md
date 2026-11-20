@@ -80,6 +80,13 @@ additional predeclared constant-scale control. The final
 [Overleaf table](docs/DIAGNOSTIC_V4_TABLE.tex) preserve the common validation
 choice and all negative findings. Test does not select the recipe.
 
+The completed validation-selected recipe reaches five-seed test
+Recall@10/NDCG@10/NDCG@50 of 0.186001/0.186207/0.270897. Original ACE reaches
+0.169937/0.169444/0.252323; ACE with full training coverage reaches
+0.175763/0.174971/0.259238. The fixed-scale fusion control reaches NDCG@50
+0.270893, so the overall improvement does not establish a material additional
+accuracy benefit from diagnostic gating. The selected recipe disables alignment.
+
 Run `run_final_components.py run` to prepare the five coverage backbones and
 fixed-budget internal teachers, then `complete_five_seed.py` for fixed-recipe
 training, a five-seed validation lock and independent ranking replays. Paths
