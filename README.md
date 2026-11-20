@@ -94,6 +94,27 @@ and private prerequisites follow the existing ACE running guide. The small
 configuration files contain the actual local artifact paths; use fresh output
 directories for a new experiment and keep frozen inputs with its manifests.
 
+## Fixed-budget ablations of the current integration model
+
+The separate `experiments/ablation_v5/` workflow adds nine retrained gate
+settings across five seeds, four frozen-model sensitivity interventions, and
+five independently trained text-to-item identity-shuffled backbones. The
+[fixed plan and running steps (中文)](docs/ABLATION_V5_PLAN_zh.md) specify the
+interventions, existing matched controls, inference coefficients and statistical
+family. No hyperparameters are reselected from the new test results.
+
+The [completed ablation analysis (中文)](docs/ABLATION_V5_RESULTS_zh.md),
+[five-seed scores and paired comparisons](docs/ABLATION_V5_RESULTS.json) and
+[Overleaf table](docs/ABLATION_V5_TABLE.tex) distinguish retraining from frozen
+interventions. Full-model retraining reproduces the frozen V4 weights and
+rankings exactly. Overall test NDCG@50 is 0.270897 for the full gate, 0.270835
+for a learned global gain, and 0.270894 without past-prediction diagnostics.
+The full-minus-gain difference is only 0.000062, with a seed-bootstrap interval
+crossing zero. These results support the fusion recipe's performance while
+limiting claims about the necessity of the diagnostic gate. Text identity
+shuffling affects only the main backbone; the diagnostic proxy retains its
+original text information, so this control is not a complete no-text system.
+
 ## MovieLens-1M: chronological 80/10/10, multiple held-out positives
 
 **Use this workflow for the current ML-1M experiment.** Read the complete
