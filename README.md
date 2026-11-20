@@ -63,6 +63,30 @@ ACE has higher means in this experiment. See the
 [Overleaf table](docs/ACE2026_TABLE.tex) with its
 [bibliography entry](docs/ACE2026_REFERENCE.bib).
 
+## Diagnostic-guided integration: coverage and calibration controls
+
+The isolated `experiments/diagnostic_v4/` workflow revisits the integration
+motivation with all-transition training, an independent collaborative relation
+branch, train-internal diagnostic proxies, fixed score calibration and optional
+identity-conditioned relation alignment. ACE and EASE remain credited existing
+components. This redesign has different equations from the manuscript's MK-MMD
+model; improvements must be separated from diagnostic novelty.
+
+The [design and sources (中文)](docs/DIAGNOSTIC_V4_DESIGN_zh.md) describe the
+coverage issue, causal label boundaries, seven fixed recipe controls and an
+additional predeclared constant-scale control. The final
+[five-seed results](docs/DIAGNOSTIC_V4_RESULTS_zh.md),
+[machine-readable scores](docs/DIAGNOSTIC_V4_RESULTS.json) and
+[Overleaf table](docs/DIAGNOSTIC_V4_TABLE.tex) preserve the common validation
+choice and all negative findings. Test does not select the recipe.
+
+Run `run_final_components.py run` to prepare the five coverage backbones and
+fixed-budget internal teachers, then `complete_five_seed.py` for fixed-recipe
+training, a five-seed validation lock and independent ranking replays. Paths
+and private prerequisites follow the existing ACE running guide. The small
+configuration files contain the actual local artifact paths; use fresh output
+directories for a new experiment and keep frozen inputs with its manifests.
+
 ## MovieLens-1M: chronological 80/10/10, multiple held-out positives
 
 **Use this workflow for the current ML-1M experiment.** Read the complete
