@@ -1,0 +1,22 @@
+% Real five-seed local results; do not mix with paper-reported ML-20M values.
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\caption{ML-1M under the shared chronological 80/10/10, multi-positive full-catalog evaluation. Values are mean $\pm$ sample standard deviation over five seeds. Architectures and training budgets differ. Cold/warm groups are the bottom/top 10\% by training interaction count.}
+\label{tab:ace-ml1m-common-protocol}
+\begin{tabular}{llcccc}
+\hline
+Group & Model & Recall@10 & NDCG@10 & Recall@50 & NDCG@50 \\
+\hline
+All & FAFIRec (text residual) & $0.162811 \pm 0.002932$ & $0.161769 \pm 0.002416$ & $0.396403 \pm 0.004731$ & $0.241545 \pm 0.002847$ \\
+All & ACE-SASRec~\cite{Lee2026ACE} & $0.169937 \pm 0.000925$ & $0.169444 \pm 0.000475$ & $0.412928 \pm 0.001877$ & $0.252323 \pm 0.000630$ \\
+\hline
+Cold & FAFIRec (text residual) & $0.294958 \pm 0.003576$ & $0.201479 \pm 0.002745$ & $0.572045 \pm 0.008578$ & $0.280625 \pm 0.004030$ \\
+Cold & ACE-SASRec~\cite{Lee2026ACE} & $0.299216 \pm 0.005933$ & $0.207720 \pm 0.002110$ & $0.601569 \pm 0.004237$ & $0.294268 \pm 0.000430$ \\
+\hline
+Warm & FAFIRec (text residual) & $0.047696 \pm 0.000710$ & $0.168293 \pm 0.001597$ & $0.163959 \pm 0.001119$ & $0.163238 \pm 0.000779$ \\
+Warm & ACE-SASRec~\cite{Lee2026ACE} & $0.049501 \pm 0.000981$ & $0.171457 \pm 0.002848$ & $0.166250 \pm 0.001260$ & $0.165004 \pm 0.001379$ \\
+\hline
+\end{tabular}
+\end{table*}

@@ -1,0 +1,42 @@
+{
+  "master_config": "E:\\论文\\FAFIRec_Research_v3\\configs\\ml1m_research_selected.json",
+  "output_dir": "E:\\论文\\FAFIRec_ACE2026\\runs\\ace2026_lr_validation",
+  "seeds": [
+    2025
+  ],
+  "variants": [
+    {
+      "reg_weight": 500.0,
+      "scale": 0.1,
+      "lr": 0.001,
+      "name": "ace_lr1e3"
+    },
+    {
+      "reg_weight": 500.0,
+      "scale": 0.1,
+      "lr": 0.0001,
+      "name": "ace_lr1e4"
+    }
+  ],
+  "epochs": 400,
+  "min_epochs": 30,
+  "eval_interval": 5,
+  "patience": 3,
+  "batch_size": 256,
+  "eval_batch": 128,
+  "max_len": 50,
+  "weight_decay": 0.0,
+  "grad_clip": null,
+  "device": "cuda",
+  "threads": 4,
+  "d_model": 128,
+  "n_layers": 2,
+  "n_heads": 2,
+  "inner_size": 256,
+  "dropout": 0.5,
+  "attn_dropout": 0.3,
+  "layer_norm_eps": 1e-12,
+  "initializer_range": 0.02,
+  "ce_chunk_size": 1024,
+  "svd_cache": "E:\\论文\\FAFIRec_ACE2026\\data\\ace2026_qwen_svd.pt"
+}
